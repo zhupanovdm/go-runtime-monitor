@@ -10,7 +10,7 @@ import (
 
 var PollInterval time.Duration
 var ReportInterval time.Duration
-var Url *url.URL
+var URL *url.URL
 
 func StartAgent() {
 	data := make(chan encoder.Encoder, 1024)

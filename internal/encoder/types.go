@@ -31,7 +31,7 @@ func (c *counter) Decode(raw string) error {
 	return nil
 }
 
-func (c *counter) Type() string {
+func (_ *counter) Type() string {
 	return CounterType
 }
 
@@ -48,7 +48,7 @@ func (g *gauge) Decode(s string) error {
 	return nil
 }
 
-func (v *gauge) Type() string {
+func (_ *gauge) Type() string {
 	return GaugeType
 }
 
