@@ -2,7 +2,7 @@ package app
 
 import (
 	"context"
-	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"sync"
@@ -51,7 +51,7 @@ func Serve() {
 	s := <-termSignal
 	Cancel()
 	WG.Wait()
-	fmt.Println(s)
+	log.Printf("%v signal received", s)
 }
 
 type Executor interface {
