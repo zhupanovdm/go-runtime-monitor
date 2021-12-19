@@ -2,6 +2,9 @@ package service
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -41,14 +44,9 @@ func MetricsTransporter(data <-chan encoder.Encoder) app.Executor {
 				log.Println("metrics pipe closed")
 				return
 			}
-
-			resp, err := http.Post(getUrl(v), "text/plain", nil)
-			if err != nil {
-				log.Printf("unable to server: %v", err)
+			if err := sendToServer(v); err != nil {
+				log.Printf("error occured on server send: %v", err)
 				return
-			}
-			if resp.StatusCode != 200 {
-				log.Printf("server responded: %d", resp.StatusCode)
 			}
 		}
 	}
@@ -58,8 +56,26 @@ func MetricsTransporter(data <-chan encoder.Encoder) app.Executor {
 	return mt
 }
 
-func getUrl(val encoder.Encoder) string {
-	u, _ := url.Parse(Url.String())
+func sendToServer(val encoder.Encoder) error {
+	resp, err := http.Post(getURL(val), "text/plain", nil)
+	if err != nil {
+		return errors.New(fmt.Sprintf("unable to connect to server: %v", err))
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Printf("unable to close response body: %v", err)
+		}
+	}(resp.Body)
+	if resp.StatusCode != 200 {
+		return errors.New(fmt.Sprintf("server responded: %d", resp.StatusCode))
+	}
+
+	return nil
+}
+
+func getURL(val encoder.Encoder) string {
+	u, _ := url.Parse(URL.String())
 	u.Path = path.Join(u.Path, "update", val.Encode())
 	return u.String()
 }
