@@ -2,9 +2,7 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -45,7 +43,7 @@ func MetricsTransporter(data <-chan encoder.Encoder) app.Executor {
 				return
 			}
 			if err := sendToServer(v); err != nil {
-				log.Printf("error occured on server send: %v", err)
+				log.Printf("error occured while transmiting to server: %v", err)
 				return
 			}
 		}
@@ -59,18 +57,15 @@ func MetricsTransporter(data <-chan encoder.Encoder) app.Executor {
 func sendToServer(val encoder.Encoder) error {
 	resp, err := http.Post(getURL(val), "text/plain", nil)
 	if err != nil {
-		return errors.New(fmt.Sprintf("unable to connect to server: %v", err))
+		return fmt.Errorf("unable to connect to server: %w", err)
 	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			log.Printf("unable to close response body: %v", err)
-		}
-	}(resp.Body)
+	err = resp.Body.Close()
+	if err != nil {
+		return fmt.Errorf("unable to close response body: %w", err)
+	}
 	if resp.StatusCode != 200 {
-		return errors.New(fmt.Sprintf("server responded: %d", resp.StatusCode))
+		return fmt.Errorf("server responded: %d", resp.StatusCode)
 	}
-
 	return nil
 }
 
