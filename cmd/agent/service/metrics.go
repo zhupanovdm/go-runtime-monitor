@@ -1,4 +1,4 @@
-package metrics
+package service
 
 import (
 	"math/rand"
@@ -37,14 +37,14 @@ const (
 	RandomValue   = "RandomValue"
 )
 
-func Reader() func(subscriber chan<- encoder.Encoder) {
+func MetricsReader() func(subscriber chan<- encoder.Encoder) {
 	var pollCounter int64
 	return func(subscriber chan<- encoder.Encoder) {
-		collect(&pollCounter, subscriber)
+		read(&pollCounter, subscriber)
 	}
 }
 
-func collect(pollCounter *int64, subscriber chan<- encoder.Encoder) {
+func read(pollCounter *int64, subscriber chan<- encoder.Encoder) {
 	stats := runtime.MemStats{}
 	runtime.ReadMemStats(&stats)
 

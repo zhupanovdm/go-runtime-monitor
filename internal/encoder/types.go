@@ -61,20 +61,22 @@ func (m *metric) Decode(raw string) error {
 	if len(chunks) != 3 {
 		return errors.New("expected 3 parts of metrics")
 	}
+	if len(chunks[1]) == 0 {
+		return errors.New("metrics name not specified")
+	}
 
 	m.name = chunks[1]
 
-	var val Encoder
 	switch chunks[0] {
 	case CounterType:
-		val = new(counter)
+		m.value = new(counter)
 	case GaugeType:
-		val = new(gauge)
+		m.value = new(gauge)
 	default:
 		return errors.New("unknown type")
 	}
 
-	err := val.Decode(chunks[3])
+	err := m.value.Decode(chunks[2])
 	if err != nil {
 		return errors.New("can not read value")
 	}

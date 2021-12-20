@@ -48,10 +48,10 @@ func Periodic(period time.Duration, e Executor) {
 }
 
 func Serve() {
-	s := <-termSignal
+	sig := <-termSignal
 	Cancel()
 	WG.Wait()
-	log.Printf("%v signal received", s)
+	log.Printf("%v signal received", sig)
 }
 
 type Executor interface {
