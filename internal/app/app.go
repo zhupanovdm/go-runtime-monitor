@@ -23,6 +23,26 @@ func init() {
 	Context, Cancel = context.WithCancel(context.Background())
 }
 
+func Once(e Executor) {
+	ctx, cancel := context.WithCancel(Context)
+
+	e.Start()
+	WG.Add(2)
+
+	go func(done <-chan struct{}) {
+		defer WG.Done()
+		defer cancel()
+		defer e.End()
+		<-done
+	}(ctx.Done())
+
+	go func() {
+		defer WG.Done()
+		defer cancel()
+		e.Exec(ctx, cancel)
+	}()
+}
+
 func Periodic(period time.Duration, e Executor) {
 	ticker := time.NewTicker(period)
 	ctx, cancel := context.WithCancel(Context)
@@ -48,10 +68,9 @@ func Periodic(period time.Duration, e Executor) {
 }
 
 func Serve() {
-	sig := <-termSignal
+	log.Printf("%v signal received", <-termSignal)
 	Cancel()
 	WG.Wait()
-	log.Printf("%v signal received", sig)
 }
 
 type Executor interface {

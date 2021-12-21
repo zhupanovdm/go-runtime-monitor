@@ -1,82 +1,64 @@
 package service
 
 import (
+	"github.com/zhupanovdm/go-runtime-monitor/internal/measure"
 	"math/rand"
 	"runtime"
-
-	"github.com/zhupanovdm/go-runtime-monitor/internal/encoder"
 )
 
-const (
-	Alloc         = "Alloc"
-	BuckHashSys   = "BuckHashSys"
-	GCCPUFraction = "GCCPUFraction"
-	GCSys         = "GCSys"
-	HeapAlloc     = "HeapAlloc"
-	HeapIdle      = "HeapIdle"
-	HeapInuse     = "HeapInuse"
-	HeapObjects   = "HeapObjects"
-	HeapReleased  = "HeapReleased"
-	HeapSys       = "HeapSys"
-	LastGC        = "LastGC"
-	Lookups       = "Lookups"
-	MCacheInuse   = "MCacheInuse"
-	MCacheSys     = "MCacheSys"
-	MSpanInuse    = "MSpanInuse"
-	MSpanSys      = "MSpanSys"
-	Mallocs       = "Mallocs"
-	NextGC        = "NextGC"
-	NumForcedGC   = "NumForcedGC"
-	NumGC         = "NumGC"
-	OtherSys      = "OtherSys"
-	PauseTotalNs  = "PauseTotalNs"
-	StackInuse    = "StackInuse"
-	StackSys      = "StackSys"
-	Sys           = "Sys"
-	PollCount     = "PollCount"
-	RandomValue   = "RandomValue"
-)
-
-func MetricsReader() func(subscriber chan<- encoder.Encoder) {
-	var pollCounter int64
-	return func(subscriber chan<- encoder.Encoder) {
-		read(&pollCounter, subscriber)
-	}
-}
-
-func read(pollCounter *int64, subscriber chan<- encoder.Encoder) {
+func pollRuntimeMetrics(subscriber chan<- string, PollCount int64) {
 	stats := runtime.MemStats{}
 	runtime.ReadMemStats(&stats)
 
-	*pollCounter++
+	subscriber <- gaugeu("Alloc", stats.Alloc)
+	subscriber <- gaugeu("BuckHashSys", stats.BuckHashSys)
+	subscriber <- gauge("GCCPUFraction", stats.GCCPUFraction)
+	subscriber <- gaugeu("GCSys", stats.GCSys)
+	subscriber <- gaugeu("HeapAlloc", stats.HeapAlloc)
+	subscriber <- gaugeu("HeapIdle", stats.HeapIdle)
+	subscriber <- gaugeu("HeapInuse", stats.HeapInuse)
+	subscriber <- gaugeu("HeapObjects", stats.HeapObjects)
+	subscriber <- gaugeu("HeapReleased", stats.HeapReleased)
+	subscriber <- gaugeu("HeapSys", stats.HeapSys)
+	subscriber <- gaugeu("LastGC", stats.LastGC)
+	subscriber <- gaugeu("Lookups", stats.Lookups)
+	subscriber <- gaugeu("MCacheInuse", stats.MCacheInuse)
+	subscriber <- gaugeu("MCacheSys", stats.MCacheSys)
+	subscriber <- gaugeu("MSpanInuse", stats.MSpanInuse)
+	subscriber <- gaugeu("MSpanSys", stats.MSpanSys)
+	subscriber <- gaugeu("Mallocs", stats.Mallocs)
+	subscriber <- gaugeu("NextGC", stats.NextGC)
+	subscriber <- gaugeu("NumForcedGC", uint64(stats.NumForcedGC))
+	subscriber <- gaugeu("NumGC", uint64(stats.NumGC))
+	subscriber <- gaugeu("OtherSys", stats.OtherSys)
+	subscriber <- gaugeu("PauseTotalNs", stats.PauseTotalNs)
+	subscriber <- gaugeu("StackInuse", stats.StackInuse)
+	subscriber <- gaugeu("StackSys", stats.StackSys)
+	subscriber <- gaugeu("Sys", stats.Sys)
+	subscriber <- counter("PollCount", PollCount)
+	subscriber <- gauge("RandomValue", rand.Float64())
+}
 
-	rand.Seed(*pollCounter)
+func gauge(name string, value float64) string {
+	g := measure.Gauge(value)
+	return (&measure.Metric{
+		Name:  name,
+		Value: &g,
+	}).Encode()
+}
 
-	subscriber <- encoder.NewGaugeI(Alloc, stats.Alloc)
-	subscriber <- encoder.NewGaugeI(BuckHashSys, stats.BuckHashSys)
-	subscriber <- encoder.NewGaugeF(GCCPUFraction, stats.GCCPUFraction)
-	subscriber <- encoder.NewGaugeI(GCSys, stats.GCSys)
-	subscriber <- encoder.NewGaugeI(HeapAlloc, stats.HeapAlloc)
-	subscriber <- encoder.NewGaugeI(HeapIdle, stats.HeapIdle)
-	subscriber <- encoder.NewGaugeI(HeapInuse, stats.HeapInuse)
-	subscriber <- encoder.NewGaugeI(HeapObjects, stats.HeapObjects)
-	subscriber <- encoder.NewGaugeI(HeapReleased, stats.HeapReleased)
-	subscriber <- encoder.NewGaugeI(HeapSys, stats.HeapSys)
-	subscriber <- encoder.NewGaugeI(LastGC, stats.LastGC)
-	subscriber <- encoder.NewGaugeI(Lookups, stats.Lookups)
-	subscriber <- encoder.NewGaugeI(MCacheInuse, stats.MCacheInuse)
-	subscriber <- encoder.NewGaugeI(MCacheSys, stats.MCacheSys)
-	subscriber <- encoder.NewGaugeI(MSpanInuse, stats.MSpanInuse)
-	subscriber <- encoder.NewGaugeI(MSpanSys, stats.MSpanSys)
-	subscriber <- encoder.NewGaugeI(Mallocs, stats.Mallocs)
-	subscriber <- encoder.NewGaugeI(NextGC, stats.NextGC)
-	subscriber <- encoder.NewGaugeI(NumForcedGC, uint64(stats.NumForcedGC))
-	subscriber <- encoder.NewGaugeI(NumGC, uint64(stats.NumGC))
-	subscriber <- encoder.NewGaugeI(OtherSys, stats.OtherSys)
-	subscriber <- encoder.NewGaugeI(PauseTotalNs, stats.PauseTotalNs)
-	subscriber <- encoder.NewGaugeI(StackInuse, stats.StackInuse)
-	subscriber <- encoder.NewGaugeI(StackSys, stats.StackSys)
-	subscriber <- encoder.NewGaugeI(Sys, stats.Sys)
-	subscriber <- encoder.NewCounter(PollCount, *pollCounter)
-	subscriber <- encoder.NewGaugeF(RandomValue, rand.Float64())
+func gaugeu(name string, value uint64) string {
+	g := measure.Gauge(value)
+	return (&measure.Metric{
+		Name:  name,
+		Value: &g,
+	}).Encode()
+}
+
+func counter(name string, value int64) string {
+	c := measure.Counter(value)
+	return (&measure.Metric{
+		Name:  name,
+		Value: &c,
+	}).Encode()
 }
