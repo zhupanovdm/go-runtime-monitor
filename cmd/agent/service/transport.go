@@ -7,8 +7,8 @@ import (
 	"path"
 )
 
-func sendToMonitorServer(baseUrl *url.URL, value string) error {
-	target, _ := url.Parse(baseUrl.String())
+func sendToMonitorServer(baseURL *url.URL, value string) error {
+	target, _ := url.Parse(baseURL.String())
 	target.Path = path.Join(target.Path, "update", value)
 	resp, err := http.Post(target.String(), "text/plain", nil)
 	if err != nil {
