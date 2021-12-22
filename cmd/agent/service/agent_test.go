@@ -1,11 +1,15 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"github.com/stretchr/testify/assert"
 	"sync"
 	"testing"
 )
+
+var ctx = context.TODO()
+var voidFunc = func() {}
 
 func TestPublish(t *testing.T) {
 	data := make(chan string)
@@ -17,7 +21,7 @@ func TestPublish(t *testing.T) {
 
 	go func() {
 		e.Start()
-		e.Exec(nil, nil)
+		e.Exec(ctx, voidFunc)
 		e.End()
 	}()
 
@@ -45,7 +49,7 @@ func TestSubscribe(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		e.Start()
-		e.Exec(nil, nil)
+		e.Exec(ctx, voidFunc)
 		e.End()
 		wg.Done()
 	}()
@@ -70,7 +74,7 @@ func TestSubscribePartial(t *testing.T) {
 	var wg sync.WaitGroup
 	poller := func() {
 		e.Start()
-		e.Exec(nil, nil)
+		e.Exec(ctx, voidFunc)
 		e.End()
 		wg.Done()
 	}
@@ -103,7 +107,7 @@ func TestSubscribeClosed(t *testing.T) {
 	var wg sync.WaitGroup
 	poller := func() {
 		e.Start()
-		e.Exec(nil, nil)
+		e.Exec(ctx, voidFunc)
 		e.End()
 		wg.Done()
 	}
@@ -137,7 +141,7 @@ func TestSubscribeFailed(t *testing.T) {
 	poller := func() {
 		e.Start()
 		for i := 0; i < 3; i++ {
-			e.Exec(nil, nil)
+			e.Exec(ctx, voidFunc)
 		}
 		e.End()
 		wg.Done()
