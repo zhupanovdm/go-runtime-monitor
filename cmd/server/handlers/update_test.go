@@ -45,16 +45,16 @@ func TestUpdateCounter(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resp := httptest.NewRecorder()
-			baseUri := "http://localhost:8080"
 
-			UpdateCounter(counters)(resp, httptest.NewRequest("POST", baseUri+tt.req, nil), nil)
+			UpdateCounter(counters)(resp, httptest.NewRequest("POST", baseURL+tt.req, nil), nil)
 
-			assert.Equal(t, tt.wantStatus, resp.Result().StatusCode)
+			result := resp.Result()
+			defer func() { _ = result.Body.Close() }()
+
+			assert.Equal(t, tt.wantStatus, result.StatusCode)
 			if tt.dataCheck != nil {
 				assert.True(t, tt.dataCheck(), "persisted data check")
 			}
-
-			_ = resp.Result().Body.Close()
 		})
 	}
 }
@@ -94,12 +94,13 @@ func TestUpdateGauge(t *testing.T) {
 
 			UpdateGauge(gauges)(resp, httptest.NewRequest("POST", baseURL+tt.req, nil), nil)
 
-			assert.Equal(t, tt.wantStatus, resp.Result().StatusCode)
+			result := resp.Result()
+			defer func() { _ = result.Body.Close() }()
+
+			assert.Equal(t, tt.wantStatus, result.StatusCode)
 			if tt.dataCheck != nil {
 				assert.True(t, tt.dataCheck(), "persisted data check")
 			}
-
-			_ = resp.Result().Body.Close()
 		})
 	}
 }
