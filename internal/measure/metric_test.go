@@ -11,14 +11,14 @@ func TestMetricDecode(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		want    Metric
+		want    *Metric
 		sample  string
 		wantErr bool
 	}{
 		{
 			name:   "Gauge test",
 			sample: "gauge/foo/0.000001",
-			want: Metric{
+			want: &Metric{
 				Name:  "foo",
 				Value: Value(&g),
 			},
@@ -26,7 +26,7 @@ func TestMetricDecode(t *testing.T) {
 		{
 			name:   "Counter test",
 			sample: "counter/bar/1",
-			want: Metric{
+			want: &Metric{
 				Name:  "bar",
 				Value: Value(&c),
 			},
@@ -69,7 +69,7 @@ func TestMetricDecode(t *testing.T) {
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else if assert.NoError(t, err) {
-				assert.Equal(t, tt.want.Value, m.Value)
+				assert.Equal(t, tt.want, m)
 			}
 		})
 	}
@@ -81,12 +81,12 @@ func TestMetricEncode(t *testing.T) {
 
 	tests := []struct {
 		name   string
-		sample Metric
+		sample *Metric
 		want   string
 	}{
 		{
 			name: "Gauge test",
-			sample: Metric{
+			sample: &Metric{
 				Name:  "foo",
 				Value: Value(&g),
 			},
@@ -94,7 +94,7 @@ func TestMetricEncode(t *testing.T) {
 		},
 		{
 			name: "Counter test",
-			sample: Metric{
+			sample: &Metric{
 				Name:  "bar",
 				Value: Value(&c),
 			},
@@ -109,6 +109,6 @@ func TestMetricEncode(t *testing.T) {
 }
 
 func TestMetricType(t *testing.T) {
-	var m = Metric{Name: "foo"}
+	var m = Metric{}
 	assert.Equal(t, MetricType, m.Type())
 }
