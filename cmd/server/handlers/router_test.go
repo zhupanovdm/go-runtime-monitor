@@ -46,9 +46,10 @@ func TestNewRouter(t *testing.T) {
 
 			r.ServeHTTP(resp, httptest.NewRequest(tt.method, baseURL+tt.url, nil))
 
-			assert.Equal(t, tt.wantStatus, resp.Result().StatusCode)
+			result := resp.Result()
+			defer func() { _ = result.Body.Close() }()
 
-			_ = resp.Result().Body.Close()
+			assert.Equal(t, tt.wantStatus, result.StatusCode)
 		})
 	}
 }

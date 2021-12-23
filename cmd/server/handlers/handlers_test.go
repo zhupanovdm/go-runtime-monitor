@@ -19,10 +19,11 @@ func TestHandlerDo(t *testing.T) {
 
 		h.Do(resp, httptest.NewRequest("POST", baseURL, nil))
 
-		assert.Equal(t, http.StatusOK, resp.Result().StatusCode)
-		assert.Equal(t, "foo", resp.Body.String())
+		result := resp.Result()
+		defer func() { _ = result.Body.Close() }()
 
-		_ = resp.Result().Body.Close()
+		assert.Equal(t, http.StatusOK, result.StatusCode)
+		assert.Equal(t, "foo", resp.Body.String())
 	})
 
 	t.Run("Nil handler", func(t *testing.T) {
@@ -30,11 +31,12 @@ func TestHandlerDo(t *testing.T) {
 		resp := httptest.NewRecorder()
 		req := httptest.NewRequest("POST", baseURL, nil)
 
+		result := resp.Result()
+		defer func() { _ = result.Body.Close() }()
+
 		assert.NotPanics(t, func() {
 			h.Do(resp, req)
 		})
-
-		_ = resp.Result().Body.Close()
 	})
 }
 
@@ -67,14 +69,15 @@ func TestPOST(t *testing.T) {
 				nextCalled = true
 			})
 
-			assert.Equal(t, tt.wantStatus, resp.Result().StatusCode)
+			result := resp.Result()
+			defer func() { _ = result.Body.Close() }()
+
+			assert.Equal(t, tt.wantStatus, result.StatusCode)
 			if tt.wantNext {
 				assert.True(t, nextCalled, "handler call is expected")
 			} else {
 				assert.False(t, nextCalled, "handler call is not expected")
 			}
-
-			_ = resp.Result().Body.Close()
 		})
 	}
 }
@@ -148,10 +151,11 @@ func TestSequence(t *testing.T) {
 
 			Handle(tt.middlewares...).ServeHTTP(resp, httptest.NewRequest("POST", baseURL, nil))
 
-			assert.Equal(t, tt.wantStatus, resp.Result().StatusCode)
-			assert.Equal(t, tt.want, resp.Body.String())
+			result := resp.Result()
+			defer func() { _ = result.Body.Close() }()
 
-			_ = resp.Result().Body.Close()
+			assert.Equal(t, tt.wantStatus, result.StatusCode)
+			assert.Equal(t, tt.want, resp.Body.String())
 		})
 	}
 }
