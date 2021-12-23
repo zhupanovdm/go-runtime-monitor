@@ -32,7 +32,7 @@ func TestHandlerDo(t *testing.T) {
 		req := httptest.NewRequest("POST", baseURL, nil)
 
 		result := resp.Result()
-		defer func() { _ = result.Body.Close() }()
+		defer result.Body.Close()
 
 		assert.NotPanics(t, func() {
 			h.Do(resp, req)
@@ -70,7 +70,7 @@ func TestPOST(t *testing.T) {
 			})
 
 			result := resp.Result()
-			defer func() { _ = result.Body.Close() }()
+			defer result.Body.Close()
 
 			assert.Equal(t, tt.wantStatus, result.StatusCode)
 			if tt.wantNext {
@@ -152,7 +152,7 @@ func TestSequence(t *testing.T) {
 			Handle(tt.middlewares...).ServeHTTP(resp, httptest.NewRequest("POST", baseURL, nil))
 
 			result := resp.Result()
-			defer func() { _ = result.Body.Close() }()
+			defer result.Body.Close()
 
 			assert.Equal(t, tt.wantStatus, result.StatusCode)
 			assert.Equal(t, tt.want, resp.Body.String())
