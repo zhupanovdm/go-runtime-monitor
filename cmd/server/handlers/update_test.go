@@ -53,6 +53,8 @@ func TestUpdateCounter(t *testing.T) {
 			if tt.dataCheck != nil {
 				assert.True(t, tt.dataCheck(), "persisted data check")
 			}
+
+			_ = resp.Result().Body.Close()
 		})
 	}
 }
@@ -96,6 +98,8 @@ func TestUpdateGauge(t *testing.T) {
 			if tt.dataCheck != nil {
 				assert.True(t, tt.dataCheck(), "persisted data check")
 			}
+
+			_ = resp.Result().Body.Close()
 		})
 	}
 }

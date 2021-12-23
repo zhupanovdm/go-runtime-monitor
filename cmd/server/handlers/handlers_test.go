@@ -21,6 +21,8 @@ func TestHandlerDo(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, resp.Result().StatusCode)
 		assert.Equal(t, "foo", resp.Body.String())
+
+		_ = resp.Result().Body.Close()
 	})
 
 	t.Run("Nil handler", func(t *testing.T) {
@@ -31,6 +33,8 @@ func TestHandlerDo(t *testing.T) {
 		assert.NotPanics(t, func() {
 			h.Do(resp, req)
 		})
+
+		_ = resp.Result().Body.Close()
 	})
 }
 
@@ -69,6 +73,8 @@ func TestPOST(t *testing.T) {
 			} else {
 				assert.False(t, nextCalled, "handler call is not expected")
 			}
+
+			_ = resp.Result().Body.Close()
 		})
 	}
 }
@@ -144,6 +150,8 @@ func TestSequence(t *testing.T) {
 
 			assert.Equal(t, tt.wantStatus, resp.Result().StatusCode)
 			assert.Equal(t, tt.want, resp.Body.String())
+
+			_ = resp.Result().Body.Close()
 		})
 	}
 }
