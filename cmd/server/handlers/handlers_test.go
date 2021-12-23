@@ -20,7 +20,7 @@ func TestHandlerDo(t *testing.T) {
 		h.Do(resp, httptest.NewRequest("POST", baseURL, nil))
 
 		result := resp.Result()
-		defer func() { _ = result.Body.Close() }()
+		defer result.Body.Close()
 
 		assert.Equal(t, http.StatusOK, result.StatusCode)
 		assert.Equal(t, "foo", resp.Body.String())
