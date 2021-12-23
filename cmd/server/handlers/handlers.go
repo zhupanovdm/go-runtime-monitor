@@ -1,40 +1,51 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 )
 
 type Middleware func(http.ResponseWriter, *http.Request, Handler)
 type Handler func(http.ResponseWriter, *http.Request)
 
-func (h Handler) Do(writer http.ResponseWriter, request *http.Request) {
+func (h Handler) Do(w http.ResponseWriter, r *http.Request) {
 	if h != nil {
-		h(writer, request)
+		h(w, r)
 	}
 }
 
-func Handle(middlewares ...Middleware) http.HandlerFunc {
-	if len(middlewares) == 0 {
-		return func(writer http.ResponseWriter, request *http.Request) {}
+func Handle(m ...Middleware) http.HandlerFunc {
+	if len(m) == 0 {
+		return func(http.ResponseWriter, *http.Request) {}
 	}
 
-	var handler Handler
-	for i := len(middlewares) - 1; i >= 0; i-- {
-		handler = bind(middlewares[i], handler)
+	var h Handler
+	for i := len(m) - 1; i >= 0; i-- {
+		h = bind(m[i], h)
 	}
-	return http.HandlerFunc(handler)
+	return http.HandlerFunc(h)
 }
 
-func POST(resp http.ResponseWriter, req *http.Request, next Handler) {
-	if req.Method != "POST" {
-		http.Error(resp, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+func POST(w http.ResponseWriter, r *http.Request, next Handler) {
+	if r.Method != "POST" {
+		status(w, http.StatusMethodNotAllowed)
 		return
 	}
-	next.Do(resp, req)
+	next.Do(w, r)
 }
 
-func bind(middleware Middleware, handler Handler) Handler {
-	return func(writer http.ResponseWriter, request *http.Request) {
-		middleware(writer, request, handler)
+func Status(code int) Middleware {
+	return func(w http.ResponseWriter, _ *http.Request, _ Handler) {
+		status(w, code)
+	}
+}
+
+func status(w http.ResponseWriter, code int) {
+	http.Error(w, fmt.Sprintf("%d %s", code, http.StatusText(code)), code)
+}
+
+func bind(m Middleware, next Handler) Handler {
+	return func(w http.ResponseWriter, r *http.Request) {
+		m(w, r, next)
 	}
 }
