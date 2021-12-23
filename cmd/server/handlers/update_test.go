@@ -49,7 +49,7 @@ func TestUpdateCounter(t *testing.T) {
 			UpdateCounter(counters)(resp, httptest.NewRequest("POST", baseURL+tt.req, nil), nil)
 
 			result := resp.Result()
-			defer func() { _ = result.Body.Close() }()
+			defer result.Body.Close()
 
 			assert.Equal(t, tt.wantStatus, result.StatusCode)
 			if tt.dataCheck != nil {
@@ -95,7 +95,7 @@ func TestUpdateGauge(t *testing.T) {
 			UpdateGauge(gauges)(resp, httptest.NewRequest("POST", baseURL+tt.req, nil), nil)
 
 			result := resp.Result()
-			defer func() { _ = result.Body.Close() }()
+			defer result.Body.Close()
 
 			assert.Equal(t, tt.wantStatus, result.StatusCode)
 			if tt.dataCheck != nil {
