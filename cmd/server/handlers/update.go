@@ -9,33 +9,42 @@ import (
 )
 
 func UpdateGauge(gauges storage.GaugesRepository) Middleware {
-	return func(resp http.ResponseWriter, req *http.Request, next Handler) {
-		metric, err := decodeMetric(req.URL.Path)
+	return func(w http.ResponseWriter, r *http.Request, next Handler) {
+		metric, err := decodeMetric(r.URL.Path)
 		if err != nil {
-			http.Error(resp, fmt.Sprint(err), http.StatusBadRequest)
+			status(w, http.StatusBadRequest)
 			return
 		}
 		if err := gauges.Save(metric.Name, *(metric.Value.(*measure.Gauge))); err != nil {
-			http.Error(resp, fmt.Sprintf("cant save metric: %v", err), http.StatusBadRequest)
+			status(w, http.StatusInternalServerError)
 			return
 		}
-		next.Do(resp, req)
+		next.Do(w, r)
 	}
 }
 
 func UpdateCounter(counters storage.CountersRepository) Middleware {
-	return func(resp http.ResponseWriter, req *http.Request, next Handler) {
-		metric, err := decodeMetric(req.URL.Path)
+	return func(w http.ResponseWriter, r *http.Request, next Handler) {
+		metric, err := decodeMetric(r.URL.Path)
 		if err != nil {
-			http.Error(resp, fmt.Sprint(err), http.StatusBadRequest)
+			status(w, http.StatusBadRequest)
 			return
 		}
 		if err := counters.Save(metric.Name, *(metric.Value.(*measure.Counter))); err != nil {
-			http.Error(resp, fmt.Sprintf("cant save metric: %v", err), http.StatusBadRequest)
+			status(w, http.StatusInternalServerError)
 			return
 		}
-		next.Do(resp, req)
+		next.Do(w, r)
 	}
+}
+
+func CheckMetricKey(w http.ResponseWriter, r *http.Request, next Handler) {
+	s := strings.Split(r.URL.Path, "/")[2:]
+	if len(s) < 3 {
+		http.NotFound(w, r)
+		return
+	}
+	next.Do(w, r)
 }
 
 func decodeMetric(path string) (*measure.Metric, error) {

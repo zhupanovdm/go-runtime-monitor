@@ -27,9 +27,21 @@ func TestNewRouter(t *testing.T) {
 			wantStatus: http.StatusOK,
 		},
 		{
-			name:       "Path without /update part",
+			name:       "Unknown metric type",
 			method:     "POST",
-			url:        "/counter/foo/1",
+			url:        "/update/bar/baz/1",
+			wantStatus: http.StatusNotImplemented,
+		},
+		{
+			name:       "Metric without key",
+			method:     "POST",
+			url:        "/update/counter/",
+			wantStatus: http.StatusNotFound,
+		},
+		{
+			name:       "Metric without key",
+			method:     "POST",
+			url:        "/update/counter",
 			wantStatus: http.StatusNotFound,
 		},
 		{
