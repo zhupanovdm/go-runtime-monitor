@@ -3,20 +3,27 @@ package service
 import (
 	"context"
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"sync"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/zhupanovdm/go-runtime-monitor/internal/model/metric"
 )
 
 var ctx = context.TODO()
 var voidFunc = func() {}
 
+var foo = &metric.Metric{Id: "foo"}
+var bar = &metric.Metric{Id: "bar"}
+var baz = &metric.Metric{Id: "baz"}
+
 func TestPublish(t *testing.T) {
-	data := make(chan string)
-	e := publish(data, func(c chan<- string) {
-		c <- "foo"
-		c <- "bar"
-		c <- "baz"
+	data := make(chan *metric.Metric)
+	e := publish(data, func(c chan<- *metric.Metric) {
+		c <- foo
+		c <- bar
+		c <- baz
 	})
 
 	go func() {
@@ -25,23 +32,23 @@ func TestPublish(t *testing.T) {
 		e.End()
 	}()
 
-	assert.Equal(t, <-data, "foo")
-	assert.Equal(t, <-data, "bar")
-	assert.Equal(t, <-data, "baz")
+	assert.Equal(t, <-data, foo)
+	assert.Equal(t, <-data, bar)
+	assert.Equal(t, <-data, baz)
 
 	_, ok := <-data
 	assert.False(t, ok)
 }
 
 func TestSubscribe(t *testing.T) {
-	data := make(chan string, 3)
-	data <- "foo"
-	data <- "bar"
-	data <- "baz"
+	data := make(chan *metric.Metric, 3)
+	data <- foo
+	data <- bar
+	data <- baz
 
-	coll := make([]string, 0, 3)
-	e := subscribe(data, func(s string) error {
-		coll = append(coll, s)
+	coll := make([]*metric.Metric, 0, 3)
+	e := subscribe(data, func(m *metric.Metric) error {
+		coll = append(coll, m)
 		return nil
 	})
 
@@ -57,17 +64,17 @@ func TestSubscribe(t *testing.T) {
 	wg.Wait()
 	close(data)
 
-	assert.ElementsMatch(t, coll, []string{"foo", "bar", "baz"})
+	assert.ElementsMatch(t, coll, []*metric.Metric{foo, bar, baz})
 }
 
 func TestSubscribePartial(t *testing.T) {
-	data := make(chan string, 3)
-	data <- "foo"
-	data <- "bar"
+	data := make(chan *metric.Metric, 3)
+	data <- foo
+	data <- bar
 
-	coll := make([]string, 0, 3)
-	e := subscribe(data, func(s string) error {
-		coll = append(coll, s)
+	coll := make([]*metric.Metric, 0, 3)
+	e := subscribe(data, func(m *metric.Metric) error {
+		coll = append(coll, m)
 		return nil
 	})
 
@@ -82,24 +89,24 @@ func TestSubscribePartial(t *testing.T) {
 	wg.Add(1)
 	go poller()
 	wg.Wait()
-	assert.ElementsMatch(t, coll, []string{"foo", "bar"})
+	assert.ElementsMatch(t, coll, []*metric.Metric{foo, bar})
 
-	data <- "baz"
+	data <- baz
 	wg.Add(1)
 	go poller()
 	wg.Wait()
 	close(data)
 
-	assert.ElementsMatch(t, coll, []string{"foo", "bar", "baz"})
+	assert.ElementsMatch(t, coll, []*metric.Metric{foo, bar, baz})
 }
 
 func TestSubscribeClosed(t *testing.T) {
-	data := make(chan string, 3)
-	data <- "foo"
-	data <- "bar"
+	data := make(chan *metric.Metric, 3)
+	data <- foo
+	data <- bar
 
-	coll := make([]string, 0, 3)
-	e := subscribe(data, func(s string) error {
+	coll := make([]*metric.Metric, 0, 3)
+	e := subscribe(data, func(s *metric.Metric) error {
 		coll = append(coll, s)
 		return nil
 	})
@@ -115,24 +122,24 @@ func TestSubscribeClosed(t *testing.T) {
 	wg.Add(1)
 	go poller()
 	wg.Wait()
-	assert.ElementsMatch(t, coll, []string{"foo", "bar"})
+	assert.ElementsMatch(t, coll, []*metric.Metric{foo, bar})
 
 	close(data)
 	wg.Add(1)
 	go poller()
 	wg.Wait()
 
-	assert.ElementsMatch(t, coll, []string{"foo", "bar"})
+	assert.ElementsMatch(t, coll, []*metric.Metric{foo, bar})
 }
 
 func TestSubscribeFailed(t *testing.T) {
-	data := make(chan string, 3)
-	data <- "foo"
-	data <- "bar"
-	data <- "baz"
+	data := make(chan *metric.Metric, 3)
+	data <- foo
+	data <- bar
+	data <- baz
 
-	coll := make([]string, 0, 3)
-	e := subscribe(data, func(s string) error {
+	coll := make([]*metric.Metric, 0, 3)
+	e := subscribe(data, func(s *metric.Metric) error {
 		coll = append(coll, s)
 		return errors.New("fake error")
 	})
@@ -152,5 +159,5 @@ func TestSubscribeFailed(t *testing.T) {
 	wg.Wait()
 	close(data)
 
-	assert.ElementsMatch(t, coll, []string{"foo", "bar", "baz"})
+	assert.ElementsMatch(t, coll, []*metric.Metric{foo, bar, baz})
 }

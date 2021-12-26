@@ -1,25 +1,21 @@
-package measure
+package metric
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func TestGaugeDecode(t *testing.T) {
+func TestCounterParse(t *testing.T) {
 	tests := []struct {
 		name    string
-		g       Gauge
+		c       Counter
 		sample  string
-		want    Gauge
+		want    Counter
 		wantErr bool
 	}{
 		{
 			name:   "Basic test",
-			sample: "1.1",
-			want:   1.1,
-		},
-		{
-			name:   "Int test",
 			sample: "1",
 			want:   1,
 		},
@@ -44,58 +40,64 @@ func TestGaugeDecode(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name:    "Float test",
+			sample:  "100.0",
+			wantErr: true,
+		},
+		{
 			name:    "Empty value",
 			sample:  "",
 			wantErr: true,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.g.Decode(tt.sample)
+			err := tt.c.Parse(tt.sample)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else if assert.NoError(t, err) {
-				assert.Equal(t, tt.want, tt.g)
+				assert.Equal(t, tt.want, tt.c)
 			}
 		})
 	}
 }
 
-func TestGaugeEncode(t *testing.T) {
+func TestCounterString(t *testing.T) {
 	tests := []struct {
 		name string
-		g    Gauge
+		c    Counter
 		want string
 	}{
 		{
 			name: "Basic test",
-			g:    0.000001,
-			want: "0.000001",
+			c:    1,
+			want: "1",
 		},
 		{
 			name: "Zero value",
-			g:    0,
-			want: "0.000000",
+			c:    0,
+			want: "0",
 		},
 		{
 			name: "Negative value",
-			g:    -1,
-			want: "-1.000000",
+			c:    -1,
+			want: "-1",
 		},
 		{
 			name: "Long value",
-			g:    1<<63 - 1,
-			want: "9223372036854775808.000000",
+			c:    1<<63 - 1,
+			want: "9223372036854775807",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, tt.g.Encode())
+			assert.Equal(t, tt.want, tt.c.String())
 		})
 	}
 }
 
-func TestGaugeType(t *testing.T) {
-	var g Gauge
-	assert.Equal(t, GaugeType, g.Type())
+func TestCounterType(t *testing.T) {
+	var c Counter
+	assert.Equal(t, CounterType, c.Type())
 }

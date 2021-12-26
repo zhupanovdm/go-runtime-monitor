@@ -1,4 +1,4 @@
-package measure
+package metric
 
 import (
 	"fmt"
@@ -9,14 +9,14 @@ type Gauge float64
 
 var _ Value = (*Gauge)(nil)
 
-func (g Gauge) Encode() string {
+func (g Gauge) String() string {
 	return fmt.Sprintf("%f", g)
 }
 
-func (g *Gauge) Decode(s string) error {
+func (g *Gauge) Parse(s string) error {
 	val, err := strconv.ParseFloat(s, 64)
 	if err != nil {
-		return err
+		return fmt.Errorf("can't parse gauge from '%s': %v", s, err)
 	}
 	*g = Gauge(val)
 	return nil

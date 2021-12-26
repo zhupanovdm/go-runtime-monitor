@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/zhupanovdm/go-runtime-monitor/internal/app"
+	"github.com/zhupanovdm/go-runtime-monitor/internal/model/metric"
 )
 
 var PollInterval time.Duration
@@ -21,24 +22,24 @@ func Start() {
 		log.Fatal(fmt.Sprintf("cant parse srv parameter %s. must be correct url: %v", Server, err))
 	}
 
-	data := make(chan string, 1024)
+	data := make(chan *metric.Metric, 1024)
 
 	rand.Seed(time.Now().UnixNano())
 
 	var pollCounter int64
-	app.Periodic(PollInterval, publish(data, func(pipe chan<- string) {
+	app.Periodic(PollInterval, publish(data, func(pipe chan<- *metric.Metric) {
 		pollCounter++
 		pollRuntimeMetrics(pipe, pollCounter)
 	}))
 
-	app.Periodic(ReportInterval, subscribe(data, func(val string) error {
-		return sendToMonitorServer(URL, val)
+	app.Periodic(ReportInterval, subscribe(data, func(val *metric.Metric) error {
+		return sendToMonitorServer(URL, val.String())
 	}))
 
 	app.Serve()
 }
 
-func publish(data chan<- string, produce func(chan<- string)) app.Executor {
+func publish(data chan<- *metric.Metric, produce func(chan<- *metric.Metric)) app.Executor {
 	return app.ExecutorHandler{
 		OnStart: func() {
 			log.Println("poller started")
@@ -54,7 +55,7 @@ func publish(data chan<- string, produce func(chan<- string)) app.Executor {
 	}
 }
 
-func subscribe(data <-chan string, consume func(string) error) app.Executor {
+func subscribe(data <-chan *metric.Metric, consume func(*metric.Metric) error) app.Executor {
 	return app.ExecutorHandler{
 		OnStart: func() {
 			log.Println("send started")

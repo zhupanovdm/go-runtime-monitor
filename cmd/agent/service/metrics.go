@@ -1,64 +1,41 @@
 package service
 
 import (
-	"github.com/zhupanovdm/go-runtime-monitor/internal/measure"
 	"math/rand"
 	"runtime"
+
+	"github.com/zhupanovdm/go-runtime-monitor/internal/model/metric"
 )
 
-func pollRuntimeMetrics(subscriber chan<- string, PollCount int64) {
+func pollRuntimeMetrics(subscriber chan<- *metric.Metric, PollCount int64) {
 	stats := runtime.MemStats{}
 	runtime.ReadMemStats(&stats)
 
-	subscriber <- gaugeu("Alloc", stats.Alloc)
-	subscriber <- gaugeu("BuckHashSys", stats.BuckHashSys)
-	subscriber <- gauge("GCCPUFraction", stats.GCCPUFraction)
-	subscriber <- gaugeu("GCSys", stats.GCSys)
-	subscriber <- gaugeu("HeapAlloc", stats.HeapAlloc)
-	subscriber <- gaugeu("HeapIdle", stats.HeapIdle)
-	subscriber <- gaugeu("HeapInuse", stats.HeapInuse)
-	subscriber <- gaugeu("HeapObjects", stats.HeapObjects)
-	subscriber <- gaugeu("HeapReleased", stats.HeapReleased)
-	subscriber <- gaugeu("HeapSys", stats.HeapSys)
-	subscriber <- gaugeu("LastGC", stats.LastGC)
-	subscriber <- gaugeu("Lookups", stats.Lookups)
-	subscriber <- gaugeu("MCacheInuse", stats.MCacheInuse)
-	subscriber <- gaugeu("MCacheSys", stats.MCacheSys)
-	subscriber <- gaugeu("MSpanInuse", stats.MSpanInuse)
-	subscriber <- gaugeu("MSpanSys", stats.MSpanSys)
-	subscriber <- gaugeu("Mallocs", stats.Mallocs)
-	subscriber <- gaugeu("NextGC", stats.NextGC)
-	subscriber <- gaugeu("NumForcedGC", uint64(stats.NumForcedGC))
-	subscriber <- gaugeu("NumGC", uint64(stats.NumGC))
-	subscriber <- gaugeu("OtherSys", stats.OtherSys)
-	subscriber <- gaugeu("PauseTotalNs", stats.PauseTotalNs)
-	subscriber <- gaugeu("StackInuse", stats.StackInuse)
-	subscriber <- gaugeu("StackSys", stats.StackSys)
-	subscriber <- gaugeu("Sys", stats.Sys)
-	subscriber <- counter("PollCount", PollCount)
-	subscriber <- gauge("RandomValue", rand.Float64())
-}
-
-func gauge(name string, value float64) string {
-	g := measure.Gauge(value)
-	return (&measure.Metric{
-		Name:  name,
-		Value: &g,
-	}).Encode()
-}
-
-func gaugeu(name string, value uint64) string {
-	g := measure.Gauge(value)
-	return (&measure.Metric{
-		Name:  name,
-		Value: &g,
-	}).Encode()
-}
-
-func counter(name string, value int64) string {
-	c := measure.Counter(value)
-	return (&measure.Metric{
-		Name:  name,
-		Value: &c,
-	}).Encode()
+	subscriber <- metric.NewGaugeFromUInt("Alloc", stats.Alloc)
+	subscriber <- metric.NewGaugeFromUInt("BuckHashSys", stats.BuckHashSys)
+	subscriber <- metric.NewGauge("GCCPUFraction", stats.GCCPUFraction)
+	subscriber <- metric.NewGaugeFromUInt("GCSys", stats.GCSys)
+	subscriber <- metric.NewGaugeFromUInt("HeapAlloc", stats.HeapAlloc)
+	subscriber <- metric.NewGaugeFromUInt("HeapIdle", stats.HeapIdle)
+	subscriber <- metric.NewGaugeFromUInt("HeapInuse", stats.HeapInuse)
+	subscriber <- metric.NewGaugeFromUInt("HeapObjects", stats.HeapObjects)
+	subscriber <- metric.NewGaugeFromUInt("HeapReleased", stats.HeapReleased)
+	subscriber <- metric.NewGaugeFromUInt("HeapSys", stats.HeapSys)
+	subscriber <- metric.NewGaugeFromUInt("LastGC", stats.LastGC)
+	subscriber <- metric.NewGaugeFromUInt("Lookups", stats.Lookups)
+	subscriber <- metric.NewGaugeFromUInt("MCacheInuse", stats.MCacheInuse)
+	subscriber <- metric.NewGaugeFromUInt("MCacheSys", stats.MCacheSys)
+	subscriber <- metric.NewGaugeFromUInt("MSpanInuse", stats.MSpanInuse)
+	subscriber <- metric.NewGaugeFromUInt("MSpanSys", stats.MSpanSys)
+	subscriber <- metric.NewGaugeFromUInt("Mallocs", stats.Mallocs)
+	subscriber <- metric.NewGaugeFromUInt("NextGC", stats.NextGC)
+	subscriber <- metric.NewGaugeFromUInt("NumForcedGC", uint64(stats.NumForcedGC))
+	subscriber <- metric.NewGaugeFromUInt("NumGC", uint64(stats.NumGC))
+	subscriber <- metric.NewGaugeFromUInt("OtherSys", stats.OtherSys)
+	subscriber <- metric.NewGaugeFromUInt("PauseTotalNs", stats.PauseTotalNs)
+	subscriber <- metric.NewGaugeFromUInt("StackInuse", stats.StackInuse)
+	subscriber <- metric.NewGaugeFromUInt("StackSys", stats.StackSys)
+	subscriber <- metric.NewGaugeFromUInt("Sys", stats.Sys)
+	subscriber <- metric.NewCounter("PollCount", PollCount)
+	subscriber <- metric.NewGauge("RandomValue", rand.Float64())
 }
