@@ -10,7 +10,7 @@ type Gauge float64
 var _ Value = (*Gauge)(nil)
 
 func (g Gauge) String() string {
-	return fmt.Sprintf("%f", g)
+	return fmt.Sprintf("%.3f", g)
 }
 
 func (g *Gauge) Parse(s string) error {

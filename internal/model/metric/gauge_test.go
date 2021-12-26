@@ -70,23 +70,23 @@ func TestGaugeString(t *testing.T) {
 	}{
 		{
 			name: "Basic test",
-			g:    0.000001,
-			want: "0.000001",
+			g:    0.100,
+			want: "0.100",
 		},
 		{
 			name: "Zero value",
 			g:    0,
-			want: "0.000000",
+			want: "0.000",
 		},
 		{
 			name: "Negative value",
 			g:    -1,
-			want: "-1.000000",
+			want: "-1.000",
 		},
 		{
 			name: "Long value",
 			g:    1<<63 - 1,
-			want: "9223372036854775808.000000",
+			want: "9223372036854775808.000",
 		},
 	}
 	for _, tt := range tests {

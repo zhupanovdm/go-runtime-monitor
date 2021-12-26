@@ -31,7 +31,7 @@ func (s *gaugeStorage) GetAll() (list metric.List, _ error) {
 	for id, gauge := range s.data {
 		value := gauge
 		list = append(list, &metric.Metric{
-			Id:    id,
+			ID:    id,
 			Value: &value,
 		})
 	}

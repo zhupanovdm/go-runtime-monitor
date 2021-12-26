@@ -14,9 +14,9 @@ import (
 var ctx = context.TODO()
 var voidFunc = func() {}
 
-var foo = &metric.Metric{Id: "foo"}
-var bar = &metric.Metric{Id: "bar"}
-var baz = &metric.Metric{Id: "baz"}
+var foo = &metric.Metric{ID: "foo"}
+var bar = &metric.Metric{ID: "bar"}
+var baz = &metric.Metric{ID: "baz"}
 
 func TestPublish(t *testing.T) {
 	data := make(chan *metric.Metric)

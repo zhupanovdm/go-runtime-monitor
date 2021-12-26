@@ -29,19 +29,19 @@ func (s *metricsService) Save(m metric.Metric) (err error) {
 	case *metric.Gauge:
 		s.gaugesMutex.Lock()
 		defer s.gaugesMutex.Unlock()
-		err = s.gauges.Save(m.Id, *value)
+		err = s.gauges.Save(m.ID, *value)
 
 	case *metric.Counter:
 		s.countersMutex.Lock()
 		defer s.countersMutex.Unlock()
-		counter, ok := s.counters.Get(m.Id, &err)
+		counter, ok := s.counters.Get(m.ID, &err)
 		if ok {
 			*value += counter
 		}
 		if err != nil {
 			return
 		}
-		err = s.counters.Save(m.Id, *value)
+		err = s.counters.Save(m.ID, *value)
 
 	default:
 		err = fmt.Errorf("type is not supported yet: %T", value)

@@ -18,7 +18,7 @@ func TestMetricString(t *testing.T) {
 		{
 			name: "Gauge test",
 			sample: Metric{
-				Id:    "foo",
+				ID:    "foo",
 				Value: Value(&gauge),
 			},
 			want: "gauge/foo/" + gauge.String(),
@@ -26,7 +26,7 @@ func TestMetricString(t *testing.T) {
 		{
 			name: "Counter test",
 			sample: Metric{
-				Id:    "bar",
+				ID:    "bar",
 				Value: Value(&counter),
 			},
 			want: "counter/bar/" + counter.String(),

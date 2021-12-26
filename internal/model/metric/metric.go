@@ -21,7 +21,7 @@ func (m List) Less(i, j int) bool {
 }
 
 type Metric struct {
-	Id    string
+	ID    string
 	Value Value
 }
 
@@ -53,13 +53,13 @@ func (t Type) NewValue() (value Value, ok bool) {
 }
 
 func (m Metric) String() string {
-	return fmt.Sprintf("%s/%s/%v", m.Value.Type(), m.Id, m.Value)
+	return fmt.Sprintf("%s/%s/%v", m.Value.Type(), m.ID, m.Value)
 }
 
 func NewGauge(id string, value float64) *Metric {
 	gauge := Gauge(value)
 	return &Metric{
-		Id:    id,
+		ID:    id,
 		Value: &gauge,
 	}
 }
@@ -67,7 +67,7 @@ func NewGauge(id string, value float64) *Metric {
 func NewGaugeFromUInt(id string, value uint64) *Metric {
 	gauge := Gauge(value)
 	return &Metric{
-		Id:    id,
+		ID:    id,
 		Value: &gauge,
 	}
 }
@@ -75,7 +75,7 @@ func NewGaugeFromUInt(id string, value uint64) *Metric {
 func NewCounter(id string, value int64) *Metric {
 	counter := Counter(value)
 	return &Metric{
-		Id:    id,
+		ID:    id,
 		Value: &counter,
 	}
 }
