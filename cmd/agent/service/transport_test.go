@@ -3,7 +3,6 @@ package service
 import (
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,8 +15,7 @@ func TestSendToMonitorServer(t *testing.T) {
 		content = r.Header.Get("Content-Type")
 	}))
 
-	baseURL, _ := url.Parse(server.URL)
-	assert.NoError(t, sendToMonitorServer(baseURL, "foo"))
+	assert.NoError(t, sendToMonitorServer(monitorClient(server.URL), "foo"))
 	assert.Equal(t, "POST /update/foo", req)
 	assert.Contains(t, content, "text/plain")
 }
@@ -27,6 +25,5 @@ func TestSendToMonitorServerError(t *testing.T) {
 		w.WriteHeader(http.StatusBadRequest)
 	}))
 
-	baseURL, _ := url.Parse(server.URL)
-	assert.Error(t, sendToMonitorServer(baseURL, "foo"))
+	assert.Error(t, sendToMonitorServer(monitorClient(server.URL), "foo"))
 }
