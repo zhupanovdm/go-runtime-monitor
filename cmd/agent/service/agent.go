@@ -2,10 +2,8 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"math/rand"
-	"net/url"
 	"time"
 
 	"github.com/zhupanovdm/go-runtime-monitor/internal/app"
@@ -14,17 +12,12 @@ import (
 
 var PollInterval time.Duration
 var ReportInterval time.Duration
-var Server string
+var ServerURL string
 
 func Start() {
-	URL, err := url.Parse(Server)
-	if err != nil {
-		log.Fatal(fmt.Sprintf("cant parse srv parameter %s. must be correct url: %v", Server, err))
-	}
+	rand.Seed(time.Now().UnixNano())
 
 	data := make(chan *metric.Metric, 1024)
-
-	rand.Seed(time.Now().UnixNano())
 
 	var pollCounter int64
 	app.Periodic(PollInterval, publish(data, func(pipe chan<- *metric.Metric) {
@@ -32,8 +25,9 @@ func Start() {
 		pollRuntimeMetrics(pipe, pollCounter)
 	}))
 
+	client := monitorClient(ServerURL)
 	app.Periodic(ReportInterval, subscribe(data, func(val *metric.Metric) error {
-		return sendToMonitorServer(URL, val.String())
+		return sendToMonitorServer(client, val.String())
 	}))
 
 	app.Serve()
