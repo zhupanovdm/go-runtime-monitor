@@ -4,7 +4,11 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/zhupanovdm/go-runtime-monitor/cmd/server/handlers"
+	"github.com/zhupanovdm/go-runtime-monitor/cmd/server/repo"
+	"github.com/zhupanovdm/go-runtime-monitor/cmd/server/service"
 	"github.com/zhupanovdm/go-runtime-monitor/internal/app"
 	"log"
 	"net/http"
@@ -13,13 +17,22 @@ import (
 var port = flag.Int("p", 8080, "Server port")
 
 func main() {
-	app.Once(server(*port, handlers.NewRouter()))
+	router := chi.NewRouter()
+	router.Use(middleware.RequestID)
+	router.Use(middleware.RealIP)
+	router.Use(middleware.Logger)
+	router.Use(middleware.Recoverer)
+
+	metrics := service.NewMetrics(repo.Gauges(), repo.Counters())
+	router.Mount("/", handlers.NewMetricsHandler(metrics))
+
+	app.Once(server(*port, router))
 	app.Serve()
 }
 
 func server(port int, handler http.Handler) app.ExecutorHandler {
 	server := &http.Server{
-		Addr:    fmt.Sprintf("localhost:%d", port),
+		Addr:    fmt.Sprintf(":%d", port),
 		Handler: handler,
 	}
 
