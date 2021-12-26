@@ -31,7 +31,7 @@ func (r *counterStorage) GetAll() (list metric.List, _ error) {
 	for id, counter := range r.data {
 		value := counter
 		list = append(list, &metric.Metric{
-			Id:    id,
+			ID:    id,
 			Value: &value,
 		})
 	}

@@ -33,7 +33,7 @@ func TestMetricsHandler(t *testing.T) {
 			method:     "GET",
 			url:        "/value/gauge/foo",
 			wantStatus: http.StatusOK,
-			want:       "0.000000",
+			want:       "0.000",
 		},
 		{
 			name:       "Update counter",
@@ -100,17 +100,17 @@ func TestMetricsHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resp, body := testRequest(t, ts, tt.method, tt.url)
-			if assert.Equal(t, tt.wantStatus, resp.StatusCode) {
+			code, result := testRequest(t, ts, tt.method, tt.url)
+			if assert.Equal(t, tt.wantStatus, code) {
 				if len(tt.want) != 0 {
-					assert.Equal(t, tt.want, body)
+					assert.Equal(t, tt.want, result)
 				}
 			}
 		})
 	}
 }
 
-func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.Response, string) {
+func testRequest(t *testing.T, ts *httptest.Server, method, path string) (int, string) {
 	req, err := http.NewRequest(method, ts.URL+path, nil)
 	require.NoError(t, err)
 
@@ -121,7 +121,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.
 	defer resp.Body.Close()
 	require.NoError(t, err)
 
-	return resp, string(respBody)
+	return resp.StatusCode, string(respBody)
 }
 
 var _ service.Metrics = (*serviceStub)(nil)
@@ -139,5 +139,5 @@ func (s serviceStub) Get(_ string, t metric.Type) (metric.Value, error) {
 }
 
 func (s serviceStub) GetAll() (metric.List, error) {
-	return make(metric.List, 0, 0), nil
+	return make(metric.List, 0), nil
 }

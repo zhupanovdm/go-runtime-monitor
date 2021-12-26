@@ -34,7 +34,7 @@ func (h *MetricsHandler) Update() http.HandlerFunc {
 		}
 
 		m := metric.Metric{
-			Id:    chi.URLParam(req, "id"),
+			ID:    chi.URLParam(req, "id"),
 			Value: value,
 		}
 

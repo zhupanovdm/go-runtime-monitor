@@ -12,7 +12,7 @@ func index() string {
 <title>Title</title>
 </head>
 <body>
-{{range .}}<div><a href="/value/{{.Value.Type}}/{{.Id}}">{{.}}</a></div>{{end}}
+{{range .}}<div><a href="/value/{{.Value.Type}}/{{.ID}}">{{.}}</a></div>{{end}}
 </body>
 </html>`
 }
