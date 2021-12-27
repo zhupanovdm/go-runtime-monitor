@@ -69,7 +69,6 @@ func NewApp() *Task {
 	signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 
 	task.job = func(t *Task) {
-		defer t.Stop()
 		log.Printf("%v signal received", <-signals)
 	}
 	return &task
@@ -79,9 +78,8 @@ func (t *Task) State() State {
 	return t.state.Load().(State)
 }
 
-func (t *Task) Run(onStop func()) {
+func (t *Task) Serve(onStop func()) {
 	t.setRunning()
-
 	t.tearDown = func() {
 		defer t.wg.Done()
 		defer t.cancel()
@@ -91,18 +89,27 @@ func (t *Task) Run(onStop func()) {
 	}
 
 	t.wg.Add(1)
+	go t.job(t)
+
+	done := t.ctx.Done()
+	go func() {
+		defer t.Stop()
+		<-done
+	}()
+}
+
+func (t *Task) Once() {
+	t.setRunning()
+	t.tearDown = func() {
+		defer t.wg.Done()
+		defer t.cancel()
+	}
+
+	t.wg.Add(1)
 	go func() {
 		defer t.Stop()
 		t.job(t)
 	}()
-}
-
-func (t *Task) Immediate() {
-	t.setRunning()
-
-	defer t.Stop()
-	t.tearDown = t.cancel
-	t.job(t)
 }
 
 func (t *Task) Periodic(period time.Duration, onStop func()) {
@@ -111,7 +118,6 @@ func (t *Task) Periodic(period time.Duration, onStop func()) {
 	ticker := time.NewTicker(period)
 
 	t.tearDown = func() {
-		defer t.wg.Done()
 		defer t.cancel()
 		ticker.Stop()
 		if onStop != nil {
@@ -123,6 +129,7 @@ func (t *Task) Periodic(period time.Duration, onStop func()) {
 
 	t.wg.Add(1)
 	go func() {
+		defer t.wg.Done()
 		for t.State() == Running {
 			select {
 			case <-ticker.C:
@@ -132,6 +139,14 @@ func (t *Task) Periodic(period time.Duration, onStop func()) {
 			}
 		}
 	}()
+}
+
+func (t *Task) Immediate() {
+	t.setRunning()
+
+	defer t.Stop()
+	defer t.cancel()
+	t.job(t)
 }
 
 func (t *Task) Stop() {
