@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/zhupanovdm/go-runtime-monitor/cmd/server/view"
 	"log"
 	"net/http"
 	"sort"
@@ -10,6 +9,8 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/zhupanovdm/go-runtime-monitor/cmd/server/service"
+	"github.com/zhupanovdm/go-runtime-monitor/cmd/server/view"
+
 	"github.com/zhupanovdm/go-runtime-monitor/internal/model/metric"
 )
 
