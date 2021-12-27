@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"log"
 	"math/rand"
 	"time"
@@ -14,65 +13,43 @@ var PollInterval time.Duration
 var ReportInterval time.Duration
 var ServerURL string
 
-func Start() {
+func StartAgent() {
 	rand.Seed(time.Now().UnixNano())
 
-	data := make(chan *metric.Metric, 1024)
+	pipe := make(chan *metric.Metric, 1024)
 
 	var pollCounter int64
-	app.Periodic(PollInterval, publish(data, func(pipe chan<- *metric.Metric) {
+	client := monitorClient(ServerURL)
+
+	a := app.NewApp()
+	a.NewTask(func(t *app.Task) {
+		log.Println("fetch metrics")
 		pollCounter++
 		pollRuntimeMetrics(pipe, pollCounter)
-	}))
+	}).Periodic(PollInterval, func() {
+		close(pipe)
+		log.Println("poller stopped")
+	})
 
-	client := monitorClient(ServerURL)
-	app.Periodic(ReportInterval, subscribe(data, func(val *metric.Metric) error {
-		return sendToMonitorServer(client, val.String())
-	}))
+	a.NewTask(func(t *app.Task) {
+		log.Println("send to remote")
 
-	app.Serve()
-}
-
-func publish(data chan<- *metric.Metric, produce func(chan<- *metric.Metric)) app.Executor {
-	return app.ExecutorHandler{
-		OnStart: func() {
-			log.Println("poller started")
-		},
-		OnExec: func(context.Context, context.CancelFunc) {
-			log.Println("fetch metrics")
-			produce(data)
-		},
-		OnEnd: func() {
-			close(data)
-			log.Println("poller completed")
-		},
-	}
-}
-
-func subscribe(data <-chan *metric.Metric, consume func(*metric.Metric) error) app.Executor {
-	return app.ExecutorHandler{
-		OnStart: func() {
-			log.Println("send started")
-		},
-		OnExec: func(context.Context, context.CancelFunc) {
-			log.Println("send to remote")
-
-			count := len(data)
-			for count > 0 {
-				value, ok := <-data
-				if !ok {
-					log.Println("data pipe closed")
-					return
-				}
-				if err := consume(value); err != nil {
-					log.Printf("error occured while transmiting to server: %v", err)
-					return
-				}
-				count--
+		count := len(pipe)
+		for count > 0 {
+			value, ok := <-pipe
+			if !ok {
+				log.Println("data pipe closed")
+				return
 			}
-		},
-		OnEnd: func() {
-			log.Println("send complete")
-		},
-	}
+			if err := sendToMonitorServer(client, value.String()); err != nil {
+				log.Printf("error occured while transmiting to server: %v", err)
+				return
+			}
+			count--
+		}
+	}).Periodic(ReportInterval, func() {
+		log.Println("sender stopped")
+	})
+	a.Immediate()
+	log.Println("agent stopped")
 }

@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/zhupanovdm/go-runtime-monitor/cmd/server/repo"
+
 	"github.com/zhupanovdm/go-runtime-monitor/internal/model/metric"
 )
 

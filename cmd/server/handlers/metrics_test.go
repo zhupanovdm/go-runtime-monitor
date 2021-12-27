@@ -1,14 +1,17 @@
 package handlers
 
 import (
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"github.com/zhupanovdm/go-runtime-monitor/cmd/server/service"
-	"github.com/zhupanovdm/go-runtime-monitor/internal/model/metric"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/zhupanovdm/go-runtime-monitor/cmd/server/service"
+
+	"github.com/zhupanovdm/go-runtime-monitor/internal/model/metric"
 )
 
 func TestMetricsHandler(t *testing.T) {
