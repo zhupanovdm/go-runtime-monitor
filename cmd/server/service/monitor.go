@@ -18,8 +18,8 @@ func StartMonitor(handler http.Handler) {
 
 	a := app.NewApp()
 	a.NewTask(func(t *app.Task) {
-		log.Printf("starting server at %v", server.Addr)
-		log.Fatal(server.ListenAndServe())
+		log.Println("starting server at", server.Addr)
+		log.Println(server.ListenAndServe())
 	}).Serve(func() {
 		log.Println("closing server")
 		if err := server.Close(); err != nil {
