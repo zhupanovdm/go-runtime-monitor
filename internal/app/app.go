@@ -69,7 +69,7 @@ func NewApp() *Task {
 	signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 
 	task.job = func(t *Task) {
-		log.Printf("%v signal received", <-signals)
+		log.Println(<-signals, "signal received")
 	}
 	return &task
 }
@@ -81,7 +81,6 @@ func (t *Task) State() State {
 func (t *Task) Serve(onStop func()) {
 	t.setRunning()
 	t.tearDown = func() {
-		defer t.wg.Done()
 		defer t.cancel()
 		if onStop != nil {
 			onStop()
@@ -89,7 +88,10 @@ func (t *Task) Serve(onStop func()) {
 	}
 
 	t.wg.Add(1)
-	go t.job(t)
+	go func() {
+		defer t.wg.Done()
+		t.job(t)
+	}()
 
 	done := t.ctx.Done()
 	go func() {
