@@ -3,17 +3,23 @@ package main
 import (
 	"flag"
 
-	"github.com/zhupanovdm/go-runtime-monitor/cmd/server/handlers"
-	"github.com/zhupanovdm/go-runtime-monitor/cmd/server/repo"
-	"github.com/zhupanovdm/go-runtime-monitor/cmd/server/service"
+	"github.com/zhupanovdm/go-runtime-monitor/config"
+	"github.com/zhupanovdm/go-runtime-monitor/pkg/app"
+	"github.com/zhupanovdm/go-runtime-monitor/service/monitor"
+	"github.com/zhupanovdm/go-runtime-monitor/service/monitor/handlers"
+	"github.com/zhupanovdm/go-runtime-monitor/storage/trivial"
 )
 
 func main() {
-	flag.IntVar(&service.Port, "p", 8080, "Server port")
+	flags := flag.NewFlagSet("monitor", flag.ExitOnError)
+	cfg := config.New().FromCLI(flags)
 
-	router := handlers.NewRouter()
-	metrics := service.NewMetrics(repo.Gauges(), repo.Counters())
-	router.Mount("/", handlers.NewMetricsHandler(metrics))
+	mon := monitor.NewMetricsMonitor(trivial.NewGaugeStorage(), trivial.NewCounterStorage())
+	server := monitor.RunServer(cfg, handlers.NewMetricsHandler(mon))
 
-	service.StartMonitor(router)
+	<-app.TerminationSignal()
+	if err := server.Close(); err != nil {
+	}
+	server.Wait()
+
 }
