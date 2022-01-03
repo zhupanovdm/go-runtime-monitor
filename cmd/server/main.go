@@ -4,9 +4,9 @@ import (
 	"flag"
 
 	"github.com/zhupanovdm/go-runtime-monitor/config"
+	"github.com/zhupanovdm/go-runtime-monitor/handlers"
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/app"
 	"github.com/zhupanovdm/go-runtime-monitor/service/monitor"
-	"github.com/zhupanovdm/go-runtime-monitor/service/monitor/handlers"
 	"github.com/zhupanovdm/go-runtime-monitor/storage/trivial"
 )
 

@@ -2,10 +2,11 @@ package agent
 
 import (
 	"context"
-	"github.com/rs/zerolog"
 	"math/rand"
 	"runtime"
 	"time"
+
+	"github.com/rs/zerolog"
 
 	"github.com/zhupanovdm/go-runtime-monitor/config"
 	"github.com/zhupanovdm/go-runtime-monitor/model/metric"
@@ -14,6 +15,7 @@ import (
 )
 
 var _ CollectorService = (*runtimeMetricsCollector)(nil)
+var _ logging.LogCtxProvider = (*runtimeMetricsCollector)(nil)
 
 type runtimeMetricsCollector struct {
 	reporter ReporterService
@@ -22,14 +24,17 @@ type runtimeMetricsCollector struct {
 }
 
 func (c *runtimeMetricsCollector) poll(ctx context.Context) error {
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithService(c))
+
 	c.counter++
 
-	logger := c.Log(ctx)
-	logger.Info().Msgf("Poll-%d", c.counter)
-	//ctx, logger := logging.Get(ctx)
+	logger.UpdateContext(logging.LogCtxFrom(c))
+	logger.Info().Msg("Runtime metrics poll")
 
-	stats := runtime.MemStats{}
-	runtime.ReadMemStats(&stats)
+	ctx = logging.SetLogger(ctx, logger)
+
+	stats := &runtime.MemStats{}
+	runtime.ReadMemStats(stats)
 
 	c.reporter.Publish(ctx, metric.NewGaugeMetric("Alloc", metric.Gauge(stats.Alloc)))
 	c.reporter.Publish(ctx, metric.NewGaugeMetric("BuckHashSys", metric.Gauge(stats.BuckHashSys)))
@@ -60,6 +65,8 @@ func (c *runtimeMetricsCollector) poll(ctx context.Context) error {
 
 	c.reporter.Publish(ctx, metric.NewCounterMetric("PollCount", metric.Counter(c.counter)))
 
+	logger.Info().Msg("Runtime metrics poll completed")
+
 	return nil
 }
 
@@ -67,10 +74,12 @@ func (c *runtimeMetricsCollector) BackgroundTask() task.Task {
 	return task.Task(func(ctx context.Context) { _ = c.poll(ctx) }).With(task.PeriodicRun(c.interval))
 }
 
-func (c *runtimeMetricsCollector) Log(ctx context.Context) *zerolog.Logger {
-	_, logger := logging.Get(ctx)
-	logger = logger.With().Str(logging.ServiceKey, "CollectorService").Logger()
-	return &logger
+func (c *runtimeMetricsCollector) Name() string {
+	return "Runtime metrics collector"
+}
+
+func (c *runtimeMetricsCollector) LoggerCtx(ctx zerolog.Context) zerolog.Context {
+	return ctx.Int64(logging.PollCountKey, c.counter)
 }
 
 func NewRuntimeMetricsCollector(cfg *config.Config, reporter ReporterService) CollectorService {

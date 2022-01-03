@@ -3,14 +3,15 @@ package http
 import (
 	"context"
 	"flag"
-	"fmt"
-	metric2 "github.com/zhupanovdm/go-runtime-monitor/model/metric"
 	"path"
 	"time"
 
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-resty/resty/v2"
 
+	"github.com/zhupanovdm/go-runtime-monitor/model/metric"
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/httplib"
+	"github.com/zhupanovdm/go-runtime-monitor/pkg/logging"
 	"github.com/zhupanovdm/go-runtime-monitor/providers/monitor"
 )
 
@@ -25,23 +26,27 @@ type Config struct {
 	Timeout time.Duration
 }
 
-func (c httpClient) Update(_ context.Context, mtr *metric2.Metric) error {
-	resp, err := c.R().Post(path.Join("update", mtr.Type().String(), mtr.ID, mtr.Value.String()))
+func (c httpClient) Update(ctx context.Context, mtr *metric.Metric) error {
+	resp, err := c.R().
+		SetContext(ctx).
+		Post(path.Join("update", mtr.Type().String(), mtr.ID, mtr.Value.String()))
 	if err != nil {
-		return fmt.Errorf("error quering server: %w", err)
+		return err
 	}
-	if err := httplib.MustBeOK(resp); err != nil {
+	if err := httplib.MustBeOK(resp.StatusCode()); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c httpClient) Value(_ context.Context, id string, typ metric2.Type) (metric2.Value, error) {
-	resp, err := c.R().Get(path.Join("value", typ.String(), id))
+func (c httpClient) Value(ctx context.Context, id string, typ metric.Type) (metric.Value, error) {
+	resp, err := c.R().
+		SetContext(ctx).
+		Get(path.Join("value", typ.String(), id))
 	if err != nil {
-		return nil, fmt.Errorf("error quering server: %w", err)
+		return nil, err
 	}
-	if err := httplib.MustBeOK(resp); err != nil {
+	if err := httplib.MustBeOK(resp.StatusCode()); err != nil {
 		return nil, err
 	}
 	return typ.Parse(string(resp.Body()))
@@ -52,7 +57,19 @@ func NewClient(cfg *Config) monitor.Provider {
 	client.SetBaseURL(cfg.Server)
 	client.SetTimeout(cfg.Timeout)
 	client.SetHeader("Content-Type", "text/plain")
-
+	client.OnBeforeRequest(func(client *resty.Client, req *resty.Request) error {
+		ctx, cid := logging.SetIfAbsentCID(req.Context(), logging.NewCID())
+		req.SetContext(ctx)
+		req.SetHeader(middleware.RequestIDHeader, cid)
+		return nil
+	})
+	client.OnAfterResponse(func(client *resty.Client, resp *resty.Response) error {
+		req := resp.Request
+		ctx := req.Context()
+		_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName("Monitor HTTP Client"), logging.WithCID(ctx))
+		logger.Trace().Msgf("%s %s [%s] %d", req.Method, req.URL, resp.Status(), resp.Size())
+		return nil
+	})
 	return &httpClient{
 		Client: client,
 	}

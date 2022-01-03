@@ -23,17 +23,15 @@ func (h *MetricsHandler) Update() http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 
-		//fmt.Println(ctx.Value(middleware.RequestIDKey))
-
 		typ := metric.Type(chi.URLParam(req, "type"))
 		if err := typ.Validate(); err != nil {
-			httplib.Status(resp, http.StatusNotImplemented, fmt.Errorf("type %v is not supported yet", typ))
+			httplib.Error(resp, http.StatusNotImplemented, fmt.Errorf("type %v is not supported yet", typ))
 			return
 		}
 
 		value, err := typ.Parse(chi.URLParam(req, "value"))
 		if err != nil {
-			httplib.Status(resp, http.StatusBadRequest, fmt.Errorf("parsing error: %s", err))
+			httplib.Error(resp, http.StatusBadRequest, fmt.Errorf("parsing error: %s", err))
 			return
 		}
 
@@ -44,7 +42,7 @@ func (h *MetricsHandler) Update() http.HandlerFunc {
 
 		if err := h.mon.Save(ctx, mtr); err != nil {
 			log.Printf("failed to persist metric %v: %v", req.URL, err)
-			httplib.Status(resp, http.StatusInternalServerError, nil)
+			httplib.Error(resp, http.StatusInternalServerError, nil)
 		}
 	}
 }
@@ -55,7 +53,7 @@ func (h *MetricsHandler) Value() http.HandlerFunc {
 
 		typ := metric.Type(chi.URLParam(req, "type"))
 		if err := typ.Validate(); err != nil {
-			httplib.Status(resp, http.StatusNotImplemented, fmt.Errorf("type %v is not supported yet", typ))
+			httplib.Error(resp, http.StatusNotImplemented, fmt.Errorf("type %v is not supported yet", typ))
 			return
 		}
 
@@ -63,16 +61,16 @@ func (h *MetricsHandler) Value() http.HandlerFunc {
 		mtr, err := h.mon.Get(ctx, id, typ)
 		if err != nil {
 			log.Printf("failed to read metric %v: %v", req.URL, err)
-			httplib.Status(resp, http.StatusInternalServerError, nil)
+			httplib.Error(resp, http.StatusInternalServerError, nil)
 		}
 		if mtr == nil {
-			httplib.Status(resp, http.StatusNotFound, fmt.Errorf("%s (%v) metric not found", id, typ))
+			httplib.Error(resp, http.StatusNotFound, fmt.Errorf("%s (%v) metric not found", id, typ))
 			return
 		}
 
 		if _, err := resp.Write([]byte(mtr.Value.String())); err != nil {
 			log.Printf("error while writing body: %v", err)
-			httplib.Status(resp, http.StatusInternalServerError, nil)
+			httplib.Error(resp, http.StatusInternalServerError, nil)
 		}
 	}
 }
@@ -84,14 +82,14 @@ func (h *MetricsHandler) GetAll() http.HandlerFunc {
 		all, err := h.mon.GetAll(ctx)
 		if err != nil {
 			log.Printf("failed to fetch persisted mon: %v", err)
-			httplib.Status(resp, http.StatusInternalServerError, nil)
+			httplib.Error(resp, http.StatusInternalServerError, nil)
 		}
 
 		sort.Sort(metric.ByString(all))
 
 		if err := view.Index.Execute(resp, all); err != nil {
 			log.Printf("error while writing body: %v", err)
-			httplib.Status(resp, http.StatusInternalServerError, nil)
+			httplib.Error(resp, http.StatusInternalServerError, nil)
 		}
 	}
 }

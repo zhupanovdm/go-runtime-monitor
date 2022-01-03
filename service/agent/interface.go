@@ -2,20 +2,16 @@ package agent
 
 import (
 	"context"
-	"github.com/zhupanovdm/go-runtime-monitor/model/metric"
 
-	"github.com/zhupanovdm/go-runtime-monitor/pkg/task"
+	"github.com/zhupanovdm/go-runtime-monitor/model/metric"
+	"github.com/zhupanovdm/go-runtime-monitor/pkg"
 )
 
 type CollectorService interface {
-	BackgroundRunner
+	pkg.BackgroundService
 }
 
 type ReporterService interface {
-	BackgroundRunner
+	pkg.BackgroundService
 	Publish(ctx context.Context, mtr *metric.Metric)
-}
-
-type BackgroundRunner interface {
-	BackgroundTask() task.Task
 }

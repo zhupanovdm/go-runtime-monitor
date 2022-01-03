@@ -3,14 +3,22 @@ package metric
 import (
 	"fmt"
 	"strconv"
+
+	"github.com/rs/zerolog"
+
+	"github.com/zhupanovdm/go-runtime-monitor/pkg/logging"
 )
 
 type Counter int64
 
 var _ Value = (*Counter)(nil)
 
-func (c *Counter) String() string {
+func (c Counter) String() string {
 	return fmt.Sprintf("%d", c)
+}
+
+func (c *Counter) LoggerCtx(ctx zerolog.Context) zerolog.Context {
+	return logging.UpdateLogCtxWith(ctx.Int64(logging.MetricValueKey, int64(*c)), c.Type())
 }
 
 func (c *Counter) Parse(s string) error {

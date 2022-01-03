@@ -2,12 +2,18 @@ package metric
 
 import (
 	"fmt"
+
+	"github.com/rs/zerolog"
+
+	"github.com/zhupanovdm/go-runtime-monitor/pkg/logging"
 )
 
 const (
 	GaugeType   Type = "gauge"
 	CounterType Type = "counter"
 )
+
+var _ logging.LogCtxProvider = (*Type)(nil)
 
 type Type string
 
@@ -22,6 +28,10 @@ func (t Type) Validate() error {
 	default:
 		return fmt.Errorf("unkown metric type: %v", t)
 	}
+}
+
+func (t Type) LoggerCtx(ctx zerolog.Context) zerolog.Context {
+	return ctx.Stringer(logging.MetricTypeKey, t)
 }
 
 func (t Type) New() (value Value, err error) {

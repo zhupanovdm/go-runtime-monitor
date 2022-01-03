@@ -7,13 +7,16 @@ import (
 
 	"github.com/zhupanovdm/go-runtime-monitor/config"
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/app"
+	"github.com/zhupanovdm/go-runtime-monitor/pkg/logging"
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/task"
 	"github.com/zhupanovdm/go-runtime-monitor/providers/monitor/http"
 	"github.com/zhupanovdm/go-runtime-monitor/service/agent"
 )
 
 func main() {
-	var wg sync.WaitGroup
+	ctx, cancel := context.WithCancel(context.Background())
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName("Agent app"))
+	logger.Info().Msg("Runtime metrics monitor agent starting")
 
 	flags := flag.NewFlagSet("agent", flag.ExitOnError)
 	cfg := config.New().FromCLI(flags)
@@ -22,11 +25,11 @@ func main() {
 	reporterSvc := agent.NewMetricsReporter(cfg, client)
 	collectorSvc := agent.NewRuntimeMetricsCollector(cfg, reporterSvc)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	var wg sync.WaitGroup
 	go reporterSvc.BackgroundTask().With(task.CompletionWait(&wg))(ctx)
 	go collectorSvc.BackgroundTask().With(task.CompletionWait(&wg))(ctx)
 
-	<-app.TerminationSignal()
+	logger.Info().Msgf("%v signal received", <-app.TerminationSignal())
 	cancel()
 	wg.Wait()
 }

@@ -6,13 +6,13 @@ import (
 	"time"
 )
 
-// Task represents a unit of work to be done in specified context
+// Task represents a unit of work to be done in specified context.
 type Task func(ctx context.Context)
 
-// Option can define some desired Task side effect
+// Option can define some desired Task side effect.
 type Option func(Task) Task
 
-// With wraps receiver with Option from arguments
+// With wraps receiver with Option from arguments.
 func (t Task) With(options ...Option) Task {
 	task := t
 	for _, opt := range options {
@@ -21,7 +21,7 @@ func (t Task) With(options ...Option) Task {
 	return task
 }
 
-// CompletionWait provides ability to track Task execution completion with given sync.WaitGroup instance
+// CompletionWait provides ability to track Task execution completion with the given sync.WaitGroup instance.
 func CompletionWait(wg *sync.WaitGroup) Option {
 	return func(task Task) Task {
 		wg.Add(1)
@@ -32,7 +32,7 @@ func CompletionWait(wg *sync.WaitGroup) Option {
 	}
 }
 
-// PeriodicRun repeatedly runs Task with specified interval
+// PeriodicRun repeatedly runs Task with the specified interval.
 func PeriodicRun(interval time.Duration) Option {
 	return func(task Task) Task {
 		ticker := time.NewTicker(interval)

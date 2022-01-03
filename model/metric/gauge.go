@@ -3,14 +3,22 @@ package metric
 import (
 	"fmt"
 	"strconv"
+
+	"github.com/rs/zerolog"
+
+	"github.com/zhupanovdm/go-runtime-monitor/pkg/logging"
 )
 
 type Gauge float64
 
 var _ Value = (*Gauge)(nil)
 
-func (g *Gauge) String() string {
+func (g Gauge) String() string {
 	return fmt.Sprintf("%.3f", g)
+}
+
+func (g *Gauge) LoggerCtx(ctx zerolog.Context) zerolog.Context {
+	return logging.UpdateLogCtxWith(ctx.Float64(logging.MetricValueKey, float64(*g)), g.Type())
 }
 
 func (g *Gauge) Parse(s string) error {

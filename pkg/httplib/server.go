@@ -7,16 +7,16 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func NewRouter(root http.Handler, middlewares ...func(http.Handler) http.Handler) http.Handler {
+func NewRouter(child http.Handler, middlewares ...func(http.Handler) http.Handler) http.Handler {
 	router := chi.NewRouter()
 	for _, mw := range middlewares {
 		router.Use(mw)
 	}
-	router.Mount("/", root)
+	router.Mount("/", child)
 	return router
 }
 
-func Status(writer http.ResponseWriter, code int, message interface{}) {
+func Error(writer http.ResponseWriter, code int, message interface{}) {
 	var err string
 	if message == nil {
 		err = fmt.Sprintf("%d %s", code, http.StatusText(code))
