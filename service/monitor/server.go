@@ -1,6 +1,7 @@
 package monitor
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"sync"
@@ -9,33 +10,65 @@ import (
 
 	"github.com/zhupanovdm/go-runtime-monitor/config"
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/httplib"
+	"github.com/zhupanovdm/go-runtime-monitor/pkg/logging"
 )
+
+const serverName = "Monitor HTTP Server"
 
 type Server struct {
 	*http.Server
-	*sync.WaitGroup
+	wg sync.WaitGroup
 }
 
-func RunServer(cfg *config.Config, handler http.Handler) *Server {
+func (srv *Server) Start(ctx context.Context) {
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(serverName))
+	logger.Info().Msgf("starting server on %v", srv.Addr)
+
+	srv.wg.Add(1)
+	go func() {
+		defer srv.wg.Done()
+		if err := srv.ListenAndServe(); err != nil {
+			logger.Err(err).Msg("server stopped")
+		}
+	}()
+}
+
+func (srv *Server) Stop(ctx context.Context) {
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(serverName))
+	if err := srv.Close(); err != nil {
+		logger.Err(err).Msg("server close failed")
+	}
+	srv.wg.Wait()
+}
+
+func NewServer(cfg *config.Config, handler http.Handler) *Server {
 	srv := &http.Server{
 		Addr: fmt.Sprintf(":%d", cfg.ServerPort),
 		Handler: httplib.NewRouter(handler,
-			middleware.RequestID,
+			CID,
 			middleware.RealIP,
-			middleware.Logger,
+			Logger,
 			middleware.Recoverer),
 	}
+	return &Server{Server: srv}
+}
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if err := srv.ListenAndServe(); err != nil {
+func CID(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		cid := r.Header.Get(logging.CorrelationIDHeader)
+		if cid == "" {
+			cid = logging.NewCID()
 		}
-	}()
+		ctx, _ := logging.SetCID(r.Context(), cid)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
 
-	return &Server{
-		Server:    srv,
-		WaitGroup: &wg,
-	}
+func Logger(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx, _ := logging.SetIfAbsentCID(r.Context(), logging.NewCID())
+		_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(serverName), logging.WithCID(ctx))
+		logger.Info().Msgf("%s %s", r.Method, r.URL)
+		next.ServeHTTP(w, r)
+	})
 }

@@ -6,7 +6,6 @@ import (
 	"path"
 	"time"
 
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-resty/resty/v2"
 
 	"github.com/zhupanovdm/go-runtime-monitor/model/metric"
@@ -60,7 +59,7 @@ func NewClient(cfg *Config) monitor.Provider {
 	client.OnBeforeRequest(func(client *resty.Client, req *resty.Request) error {
 		ctx, cid := logging.SetIfAbsentCID(req.Context(), logging.NewCID())
 		req.SetContext(ctx)
-		req.SetHeader(middleware.RequestIDHeader, cid)
+		req.SetHeader(logging.CorrelationIDHeader, cid)
 		return nil
 	})
 	client.OnAfterResponse(func(client *resty.Client, resp *resty.Response) error {

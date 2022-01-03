@@ -6,6 +6,9 @@ const (
 	// CorrelationIDKey is used to track unique request.
 	CorrelationIDKey = "cid"
 
+	// CorrelationIDHeader is used to transport Correlation ID context value via the HTTP header.
+	CorrelationIDHeader = "X-CorrelationID"
+
 	// ServiceKey is used to track concrete service side effects.
 	ServiceKey = "svc"
 

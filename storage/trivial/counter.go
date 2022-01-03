@@ -5,8 +5,11 @@ import (
 	"sync"
 
 	"github.com/zhupanovdm/go-runtime-monitor/model/metric"
+	"github.com/zhupanovdm/go-runtime-monitor/pkg/logging"
 	"github.com/zhupanovdm/go-runtime-monitor/storage"
 )
+
+const trivialCounterStorageName = "Trivial storage of Counter"
 
 var _ storage.CounterStorage = (*trivialCounterStorage)(nil)
 
@@ -15,7 +18,11 @@ type trivialCounterStorage struct {
 	data map[string]metric.Counter
 }
 
-func (s *trivialCounterStorage) Update(_ context.Context, id string, counter metric.Counter) error {
+func (s *trivialCounterStorage) Update(ctx context.Context, id string, counter metric.Counter) error {
+	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(trivialCounterStorageName), logging.WithCID(ctx))
+	defer func() { logger.Info().Msg("Update query executed") }()
+
 	s.Lock()
 	defer s.Unlock()
 
@@ -23,7 +30,11 @@ func (s *trivialCounterStorage) Update(_ context.Context, id string, counter met
 	return nil
 }
 
-func (s *trivialCounterStorage) Get(_ context.Context, id string) (*metric.Metric, error) {
+func (s *trivialCounterStorage) Get(ctx context.Context, id string) (*metric.Metric, error) {
+	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(trivialCounterStorageName), logging.WithCID(ctx))
+	defer func() { logger.Info().Msg("Get query executed") }()
+
 	s.RLock()
 	defer s.RUnlock()
 
@@ -34,7 +45,11 @@ func (s *trivialCounterStorage) Get(_ context.Context, id string) (*metric.Metri
 	return metric.NewCounterMetric(id, value), nil
 }
 
-func (s *trivialCounterStorage) GetAll(_ context.Context) (list []*metric.Metric, _ error) {
+func (s *trivialCounterStorage) GetAll(ctx context.Context) (list []*metric.Metric, _ error) {
+	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(trivialCounterStorageName), logging.WithCID(ctx))
+	defer func() { logger.Info().Msg("Get all query executed") }()
+
 	s.RLock()
 	defer s.RUnlock()
 
