@@ -30,6 +30,6 @@ func (c *Counter) Parse(s string) error {
 	return nil
 }
 
-func (*Counter) Type() Type {
+func (Counter) Type() Type {
 	return CounterType
 }

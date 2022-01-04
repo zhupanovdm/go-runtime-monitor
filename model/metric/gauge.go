@@ -30,6 +30,6 @@ func (g *Gauge) Parse(s string) error {
 	return nil
 }
 
-func (*Gauge) Type() Type {
+func (Gauge) Type() Type {
 	return GaugeType
 }
