@@ -60,7 +60,7 @@ func TestGauge_Parse(t *testing.T) {
 				assert.Error(t, err)
 			} else {
 				if assert.NoError(t, err) {
-					assert.Equal(t, tt.g, tt.want,
+					assert.Equal(t, tt.want, tt.g,
 						fmt.Sprintf("%T.Parse(\"%s\") affects to %T(%v)", tt.g, tt.arg, tt.want, tt.want))
 				}
 			}

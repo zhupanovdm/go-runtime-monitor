@@ -41,7 +41,7 @@ func TestType_New(t *testing.T) {
 				assert.Error(t, err)
 			} else {
 				if assert.NoError(t, err) {
-					assert.Equal(t, v, tt.wantValue,
+					assert.Equal(t, tt.wantValue, v,
 						fmt.Sprintf("Type(\"%v\").New() must produce %T(%v)", tt.t, tt.wantValue, tt.wantValue))
 				}
 			}
@@ -99,7 +99,7 @@ func TestType_Parse(t *testing.T) {
 				assert.Error(t, err)
 			} else {
 				if assert.NoError(t, err) {
-					assert.Equal(t, v, tt.wantValue,
+					assert.Equal(t, tt.wantValue, v,
 						fmt.Sprintf("Type(\"%v\").Parse(\"%s\") must produce %T(%v)", tt.t, tt.arg, tt.wantValue, tt.wantValue))
 				}
 			}
@@ -132,7 +132,7 @@ func TestType_String(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.t.String(), tt.want)
+			assert.Equal(t, tt.want, tt.t.String())
 		})
 	}
 }
@@ -160,9 +160,6 @@ func TestType_Validate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.t.Validate(); (err != nil) != tt.wantErr {
-				t.Errorf("Validate() error = %v, wantErr %v", err, tt.wantErr)
-			}
 			err := tt.t.Validate()
 			if tt.wantErr {
 				assert.Error(t, err)

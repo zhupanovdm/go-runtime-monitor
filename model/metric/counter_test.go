@@ -2,9 +2,10 @@ package metric
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"math"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCounter_Parse(t *testing.T) {
@@ -58,7 +59,7 @@ func TestCounter_Parse(t *testing.T) {
 			assert.Error(t, err)
 		} else {
 			if assert.NoError(t, err) {
-				assert.Equal(t, tt.c, tt.want,
+				assert.Equal(t, tt.want, tt.c,
 					fmt.Sprintf("%T.Parse(\"%s\") affects to %T(%v)", tt.c, tt.arg, tt.want, tt.want))
 			}
 		}
