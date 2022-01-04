@@ -29,7 +29,7 @@ func (c *runtimeMetricsCollector) poll(ctx context.Context) error {
 	c.counter++
 
 	logger.UpdateContext(logging.LogCtxFrom(c))
-	logger.Info().Msg("Runtime metrics poll")
+	logger.Info().Msg("polling runtime metrics")
 
 	ctx = logging.SetLogger(ctx, logger)
 
@@ -65,7 +65,7 @@ func (c *runtimeMetricsCollector) poll(ctx context.Context) error {
 
 	c.reporter.Publish(ctx, metric.NewCounterMetric("PollCount", metric.Counter(c.counter)))
 
-	logger.Info().Msg("Runtime metrics poll completed")
+	logger.Info().Msg("poll completed")
 
 	return nil
 }
@@ -75,7 +75,7 @@ func (c *runtimeMetricsCollector) BackgroundTask() task.Task {
 }
 
 func (c *runtimeMetricsCollector) Name() string {
-	return "Runtime metrics collector"
+	return "Agent metrics collector"
 }
 
 func (c *runtimeMetricsCollector) LoggerCtx(ctx zerolog.Context) zerolog.Context {

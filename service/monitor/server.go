@@ -22,7 +22,7 @@ type Server struct {
 
 func (srv *Server) Start(ctx context.Context) {
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(serverName))
-	logger.Info().Msgf("starting server on %v", srv.Addr)
+	logger.Info().Msgf("running server on %v", srv.Addr)
 
 	srv.wg.Add(1)
 	go func() {

@@ -16,7 +16,7 @@ import (
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName("Agent app"))
-	logger.Info().Msg("runtime metrics monitor agent starting")
+	logger.Info().Msg("starting runtime metrics monitor agent")
 
 	flags := flag.NewFlagSet("agent", flag.ExitOnError)
 	cfg := config.New().FromCLI(flags)

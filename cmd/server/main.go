@@ -15,7 +15,7 @@ import (
 func main() {
 	ctx := context.Background()
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName("Monitor app"))
-	logger.Info().Msg("runtime metrics monitor server starting")
+	logger.Info().Msg("starting runtime metrics monitor server")
 
 	flags := flag.NewFlagSet("monitor", flag.ExitOnError)
 	cfg := config.New().FromCLI(flags)

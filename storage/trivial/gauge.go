@@ -15,53 +15,58 @@ var _ storage.GaugeStorage = (*trivialGaugeStorage)(nil)
 
 type trivialGaugeStorage struct {
 	sync.RWMutex
-	data map[string]metric.Gauge
+	data map[string]float64
 }
 
 func (s *trivialGaugeStorage) Update(ctx context.Context, id string, gauge metric.Gauge) error {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(trivialGaugeStorageName), logging.WithCID(ctx))
-	defer func() { logger.Info().Msg("Update query executed") }()
+
+	value := float64(gauge)
 
 	s.Lock()
 	defer s.Unlock()
+	s.data[id] = value
 
-	s.data[id] = gauge
+	logger.Trace().Msgf("gauge [%s]: updated with [%f]", id, value)
 	return nil
 }
 
 func (s *trivialGaugeStorage) Get(ctx context.Context, id string) (*metric.Metric, error) {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(trivialGaugeStorageName), logging.WithCID(ctx))
-	defer func() { logger.Info().Msg("Get query executed") }()
 
 	s.RLock()
 	defer s.RUnlock()
 
 	value, ok := s.data[id]
 	if !ok {
+		logger.Trace().Msgf("gauge [%s]: not found", id)
 		return nil, nil
 	}
-	return metric.NewGaugeMetric(id, value), nil
+
+	logger.Trace().Msgf("gauge [%s]: restored [%f]", id, value)
+	return metric.NewGaugeMetric(id, metric.Gauge(value)), nil
 }
 
 func (s *trivialGaugeStorage) GetAll(ctx context.Context) (list []*metric.Metric, _ error) {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(trivialGaugeStorageName), logging.WithCID(ctx))
-	defer func() { logger.Info().Msg("Get query executed") }()
 
 	s.RLock()
 	defer s.RUnlock()
 
 	list = make([]*metric.Metric, 0, len(s.data))
 	for k, v := range s.data {
-		list = append(list, metric.NewGaugeMetric(k, v))
+		list = append(list, metric.NewGaugeMetric(k, metric.Gauge(v)))
 	}
+
+	logger.Trace().Msgf("gauge: %d records read", len(list))
 	return
 }
 
 func NewGaugeStorage() storage.GaugeStorage {
 	return &trivialGaugeStorage{
-		data: make(map[string]metric.Gauge),
+		data: make(map[string]float64),
 	}
 }

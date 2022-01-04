@@ -18,7 +18,7 @@ func (g Gauge) String() string {
 }
 
 func (g *Gauge) LoggerCtx(ctx zerolog.Context) zerolog.Context {
-	return logging.UpdateLogCtxWith(ctx.Float64(logging.MetricValueKey, float64(*g)), g.Type())
+	return logging.LogCtxUpdateWith(ctx.Float64(logging.MetricValueKey, float64(*g)), g.Type())
 }
 
 func (g *Gauge) Parse(s string) error {

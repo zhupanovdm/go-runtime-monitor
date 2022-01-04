@@ -14,21 +14,22 @@ import (
 	"github.com/zhupanovdm/go-runtime-monitor/view"
 )
 
-const handlerName = "Metrics monitor HTTP handler"
+const handlerName = "Monitor HTTP handler"
 
-type MetricsHandler struct {
+type MetricsMonitorHandler struct {
 	*chi.Mux
 	mon monitor.MetricsMonitorService
 }
 
-func (h *MetricsHandler) Update() http.HandlerFunc {
+func (h *MetricsMonitorHandler) Update() http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
 		ctx, _ := logging.SetIfAbsentCID(req.Context(), logging.NewCID())
 		_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(handlerName), logging.WithCID(ctx))
-		defer func() { logger.Info().Msg("Update executed") }()
+		logger.Info().Msg("handling [Update]")
 
 		typ := metric.Type(chi.URLParam(req, "type"))
 		logger.UpdateContext(logging.LogCtxFrom(typ))
+
 		if err := typ.Validate(); err != nil {
 			logger.Err(err).Msg("unsupported type")
 			httplib.Error(resp, http.StatusNotImplemented, fmt.Errorf("type %v is not supported yet", typ))
@@ -47,23 +48,24 @@ func (h *MetricsHandler) Update() http.HandlerFunc {
 			Value: value,
 		}
 		logger.UpdateContext(logging.LogCtxFrom(mtr))
-		ctx = logging.SetLogger(ctx, logger)
 
-		if err := h.mon.Save(ctx, mtr); err != nil {
+		ctx = logging.SetLogger(ctx, logger)
+		if err := h.mon.Update(ctx, mtr); err != nil {
 			logger.Err(err).Msg("failed to persist metric")
 			httplib.Error(resp, http.StatusInternalServerError, nil)
 		}
 	}
 }
 
-func (h *MetricsHandler) Value() http.HandlerFunc {
+func (h *MetricsMonitorHandler) Value() http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
 		ctx, _ := logging.SetIfAbsentCID(req.Context(), logging.NewCID())
 		_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(handlerName), logging.WithCID(ctx))
-		defer func() { logger.Info().Msg("Value executed") }()
+		logger.Info().Msg("handling [Value]")
 
 		typ := metric.Type(chi.URLParam(req, "type"))
 		logger.UpdateContext(logging.LogCtxFrom(typ))
+
 		if err := typ.Validate(); err != nil {
 			logger.Err(err).Msg("unsupported type")
 			httplib.Error(resp, http.StatusNotImplemented, fmt.Errorf("type %v is not supported yet", typ))
@@ -71,14 +73,15 @@ func (h *MetricsHandler) Value() http.HandlerFunc {
 		}
 
 		id := chi.URLParam(req, "id")
-		logger = logger.With().Str(logging.MetricIDKey, id).Logger()
-		ctx = logging.SetLogger(ctx, logger)
+		logger.UpdateContext(logging.LogCtxKeyStr(logging.MetricIDKey, id))
 
+		ctx = logging.SetLogger(ctx, logger)
 		mtr, err := h.mon.Get(ctx, id, typ)
 		if err != nil {
 			logger.Err(err).Msg("metric read failed")
 			httplib.Error(resp, http.StatusInternalServerError, nil)
 		}
+
 		if mtr == nil {
 			logger.Warn().Msg("requested metric not found")
 			httplib.Error(resp, http.StatusNotFound, fmt.Errorf("%s (%v) metric not found", id, typ))
@@ -92,17 +95,18 @@ func (h *MetricsHandler) Value() http.HandlerFunc {
 	}
 }
 
-func (h *MetricsHandler) GetAll() http.HandlerFunc {
+func (h *MetricsMonitorHandler) GetAll() http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
 		ctx, _ := logging.SetIfAbsentCID(req.Context(), logging.NewCID())
 		_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(handlerName), logging.WithCID(ctx))
-		defer func() { logger.Info().Msg("Get all executed") }()
+		logger.Info().Msg("handling [GetAll]")
 
 		all, err := h.mon.GetAll(ctx)
 		if err != nil {
-			logger.Err(err).Msg("failed to query all metrics")
+			logger.Err(err).Msg("failed to query metrics")
 			httplib.Error(resp, http.StatusInternalServerError, nil)
 		}
+		logger.Trace().Msgf("got %d records", len(all))
 
 		sort.Sort(metric.ByString(all))
 
@@ -113,8 +117,8 @@ func (h *MetricsHandler) GetAll() http.HandlerFunc {
 	}
 }
 
-func NewMetricsHandler(mon monitor.MetricsMonitorService) *MetricsHandler {
-	handler := &MetricsHandler{
+func NewMetricsHandler(mon monitor.MetricsMonitorService) *MetricsMonitorHandler {
+	handler := &MetricsMonitorHandler{
 		Mux: chi.NewRouter(),
 		mon: mon,
 	}

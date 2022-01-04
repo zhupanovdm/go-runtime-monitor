@@ -30,7 +30,7 @@ func (r *metricsReporter) Publish(ctx context.Context, mtr *metric.Metric) {
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithService(r), logging.WithCID(ctx))
 
 	logger.UpdateContext(logging.LogCtxFrom(mtr))
-	logger.Trace().Msg("Metric publish")
+	logger.Trace().Msg("publishing metric")
 
 	r.events <- metricEvent{
 		Metric:        mtr,
@@ -40,7 +40,7 @@ func (r *metricsReporter) Publish(ctx context.Context, mtr *metric.Metric) {
 
 func (r *metricsReporter) report(ctx context.Context) error {
 	ctx, logger := logging.GetOrCreateLogger(ctx, logging.WithService(r))
-	logger.Info().Msg("Metrics report to monitor")
+	logger.Info().Msg("reporting metrics to monitor")
 
 	for cnt := len(r.events); cnt > 0; cnt-- {
 		event := <-r.events
@@ -49,16 +49,16 @@ func (r *metricsReporter) report(ctx context.Context) error {
 		_, logger := logging.GetOrCreateLogger(ctx, logging.WithCID(ctx))
 
 		logger.UpdateContext(logging.LogCtxFrom(event.Metric))
-		logger.Trace().Msg("Transport metric")
+		logger.Trace().Msg("transporting metric")
 
 		ctx = logging.SetLogger(ctx, logger)
 		if err := r.Update(ctx, event.Metric); err != nil {
-			logger.Err(err).Msg("Metric not sent")
+			logger.Err(err).Msg("metric not sent")
 			return err
 		}
 	}
 
-	logger.Info().Msg("Metrics report completed")
+	logger.Info().Msg("reporting completed")
 	return nil
 }
 
@@ -67,7 +67,7 @@ func (r *metricsReporter) BackgroundTask() task.Task {
 }
 
 func (r *metricsReporter) Name() string {
-	return "Metrics reporter"
+	return "Agent metrics reporter"
 }
 
 func NewMetricsReporter(cfg *config.Config, provider monitor.Provider) ReporterService {

@@ -29,7 +29,7 @@ func (m *Metric) String() string {
 }
 
 func (m *Metric) LoggerCtx(ctx zerolog.Context) zerolog.Context {
-	return logging.UpdateLogCtxWith(ctx.Str(logging.MetricIDKey, m.ID), m.Value)
+	return logging.LogCtxUpdateWith(ctx.Str(logging.MetricIDKey, m.ID), m.Value)
 }
 
 func NewGaugeMetric(id string, gauge Gauge) *Metric {
