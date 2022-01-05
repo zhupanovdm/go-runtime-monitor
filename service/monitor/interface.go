@@ -2,12 +2,12 @@ package monitor
 
 import (
 	"context"
-	"github.com/zhupanovdm/go-runtime-monitor/pkg"
 
 	"github.com/zhupanovdm/go-runtime-monitor/model/metric"
+	"github.com/zhupanovdm/go-runtime-monitor/pkg"
 )
 
-type MetricsMonitorService interface {
+type Service interface {
 	pkg.Service
 
 	Get(ctx context.Context, id string, typ metric.Type) (*metric.Metric, error)

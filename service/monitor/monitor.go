@@ -9,14 +9,14 @@ import (
 	"github.com/zhupanovdm/go-runtime-monitor/storage"
 )
 
-var _ MetricsMonitorService = (*monitorSvc)(nil)
+var _ Service = (*monitor)(nil)
 
-type monitorSvc struct {
+type monitor struct {
 	gauge   storage.GaugeStorage
 	counter storage.CounterStorage
 }
 
-func (m *monitorSvc) Update(ctx context.Context, mtr *metric.Metric) (err error) {
+func (m *monitor) Update(ctx context.Context, mtr *metric.Metric) (err error) {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithService(m), logging.WithCID(ctx))
 
@@ -37,7 +37,7 @@ func (m *monitorSvc) Update(ctx context.Context, mtr *metric.Metric) (err error)
 	return
 }
 
-func (m *monitorSvc) Get(ctx context.Context, id string, typ metric.Type) (value *metric.Metric, err error) {
+func (m *monitor) Get(ctx context.Context, id string, typ metric.Type) (value *metric.Metric, err error) {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithService(m), logging.WithCID(ctx))
 
@@ -59,7 +59,7 @@ func (m *monitorSvc) Get(ctx context.Context, id string, typ metric.Type) (value
 	return
 }
 
-func (m *monitorSvc) GetAll(ctx context.Context) (list []*metric.Metric, err error) {
+func (m *monitor) GetAll(ctx context.Context) (list []*metric.Metric, err error) {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithService(m), logging.WithCID(ctx))
 	logger.Info().Msg("serving [GetAll]")
@@ -83,12 +83,12 @@ func (m *monitorSvc) GetAll(ctx context.Context) (list []*metric.Metric, err err
 	return
 }
 
-func (m *monitorSvc) Name() string {
+func (m *monitor) Name() string {
 	return "Monitor service"
 }
 
-func NewMetricsMonitor(gaugeStorage storage.GaugeStorage, counterStorage storage.CounterStorage) MetricsMonitorService {
-	return &monitorSvc{
+func NewMonitor(gaugeStorage storage.GaugeStorage, counterStorage storage.CounterStorage) Service {
+	return &monitor{
 		gauge:   gaugeStorage,
 		counter: counterStorage,
 	}

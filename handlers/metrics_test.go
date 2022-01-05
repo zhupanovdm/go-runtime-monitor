@@ -14,9 +14,9 @@ import (
 	"github.com/zhupanovdm/go-runtime-monitor/service/monitor"
 )
 
-func TestMetricsMonitorHandler(t *testing.T) {
-	var mon monitor.MetricsMonitorService = &monitorServiceStub{}
-	ts := httptest.NewServer(NewMetricsHandler(mon))
+func TestMetricsHandler(t *testing.T) {
+	var svc monitor.Service = &monitorServiceStub{}
+	ts := httptest.NewServer(NewMetricsRouter(NewMetricsHandler(svc)))
 	defer ts.Close()
 
 	tests := []struct {
@@ -128,7 +128,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) (int, s
 	return resp.StatusCode, string(respBody)
 }
 
-var _ monitor.MetricsMonitorService = (*monitorServiceStub)(nil)
+var _ monitor.Service = (*monitorServiceStub)(nil)
 
 type monitorServiceStub struct {
 }

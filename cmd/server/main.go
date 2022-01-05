@@ -20,8 +20,8 @@ func main() {
 	flags := flag.NewFlagSet("monitor", flag.ExitOnError)
 	cfg := config.New().FromCLI(flags)
 
-	mon := monitor.NewMetricsMonitor(trivial.NewGaugeStorage(), trivial.NewCounterStorage())
-	server := monitor.NewServer(cfg, handlers.NewMetricsHandler(mon))
+	mon := monitor.NewMonitor(trivial.NewGaugeStorage(), trivial.NewCounterStorage())
+	server := monitor.NewServer(cfg, handlers.NewMetricsRouter(handlers.NewMetricsHandler(mon)))
 	server.Start(ctx)
 
 	logger.Info().Msgf("%v signal received", <-app.TerminationSignal())

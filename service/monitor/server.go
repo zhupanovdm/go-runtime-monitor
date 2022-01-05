@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
 	"github.com/zhupanovdm/go-runtime-monitor/config"
-	"github.com/zhupanovdm/go-runtime-monitor/pkg/httplib"
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/logging"
 )
 
@@ -43,14 +43,19 @@ func (srv *Server) Stop(ctx context.Context) {
 
 func NewServer(cfg *config.Config, handler http.Handler) *Server {
 	srv := &http.Server{
-		Addr: fmt.Sprintf(":%d", cfg.ServerPort),
-		Handler: httplib.NewRouter(handler,
-			CID,
-			middleware.RealIP,
-			Logger,
-			middleware.Recoverer),
+		Addr:    fmt.Sprintf(":%d", cfg.ServerPort),
+		Handler: root(handler, CID, middleware.RealIP, Logger, middleware.Recoverer),
 	}
 	return &Server{Server: srv}
+}
+
+func root(h http.Handler, middlewares ...func(http.Handler) http.Handler) *chi.Mux {
+	router := chi.NewRouter()
+	for _, mw := range middlewares {
+		router.Use(mw)
+	}
+	router.Mount("/", h)
+	return router
 }
 
 func CID(next http.Handler) http.Handler {
