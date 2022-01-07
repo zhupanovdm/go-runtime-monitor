@@ -14,15 +14,17 @@ import (
 	"github.com/zhupanovdm/go-runtime-monitor/view"
 )
 
-const handlerName = "Metrics HTTP handler"
+const metricsHandlerName = "Metrics HTTP handler"
 
 type MetricsHandler struct {
 	monitor monitor.Service
 }
 
 func (h *MetricsHandler) Update(resp http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+
 	ctx, _ := logging.SetIfAbsentCID(req.Context(), logging.NewCID())
-	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(handlerName), logging.WithCID(ctx))
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(metricsHandlerName), logging.WithCID(ctx))
 	logger.Info().Msg("handling [Update]")
 
 	typ := metric.Type(chi.URLParam(req, "type"))
@@ -55,8 +57,10 @@ func (h *MetricsHandler) Update(resp http.ResponseWriter, req *http.Request) {
 }
 
 func (h *MetricsHandler) Value(resp http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+
 	ctx, _ := logging.SetIfAbsentCID(req.Context(), logging.NewCID())
-	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(handlerName), logging.WithCID(ctx))
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(metricsHandlerName), logging.WithCID(ctx))
 	logger.Info().Msg("handling [Value]")
 
 	typ := metric.Type(chi.URLParam(req, "type"))
@@ -76,6 +80,7 @@ func (h *MetricsHandler) Value(resp http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		logger.Err(err).Msg("metric read failed")
 		httplib.Error(resp, http.StatusInternalServerError, nil)
+		return
 	}
 
 	if mtr == nil {
@@ -91,8 +96,10 @@ func (h *MetricsHandler) Value(resp http.ResponseWriter, req *http.Request) {
 }
 
 func (h *MetricsHandler) GetAll(resp http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+
 	ctx, _ := logging.SetIfAbsentCID(req.Context(), logging.NewCID())
-	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(handlerName), logging.WithCID(ctx))
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(metricsHandlerName), logging.WithCID(ctx))
 	logger.Info().Msg("handling [GetAll]")
 
 	all, err := h.monitor.GetAll(ctx)

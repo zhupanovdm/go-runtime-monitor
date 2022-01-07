@@ -1,22 +1,14 @@
 package handlers
 
 import (
-	"context"
-	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
-	"github.com/zhupanovdm/go-runtime-monitor/model/metric"
-	"github.com/zhupanovdm/go-runtime-monitor/service/monitor"
 )
 
 func TestMetricsHandler(t *testing.T) {
-	var svc monitor.Service = &monitorServiceStub{}
-	ts := httptest.NewServer(NewMetricsRouter(NewMetricsHandler(svc)))
+	ts := NewServer(&monitorServiceStub{})
 	defer ts.Close()
 
 	tests := []struct {
@@ -38,6 +30,12 @@ func TestMetricsHandler(t *testing.T) {
 			url:        "/value/gauge/foo",
 			wantStatus: http.StatusOK,
 			want:       "0.000",
+		},
+		{
+			name:       "Get absent metric",
+			method:     "GET",
+			url:        "/value/gauge/not-found",
+			wantStatus: http.StatusNotFound,
 		},
 		{
 			name:       "Update counter",
@@ -104,51 +102,12 @@ func TestMetricsHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			code, result := testRequest(t, ts, tt.method, tt.url)
+			code, result := testRequest(t, ts, tt.method, tt.url, nil)
 			if assert.Equal(t, tt.wantStatus, code) {
 				if len(tt.want) != 0 {
-					assert.Equal(t, tt.want, result)
+					assert.Equal(t, []byte(tt.want), result)
 				}
 			}
 		})
 	}
-}
-
-func testRequest(t *testing.T, ts *httptest.Server, method, path string) (int, string) {
-	req, err := http.NewRequest(method, ts.URL+path, nil)
-	require.NoError(t, err)
-
-	resp, err := http.DefaultClient.Do(req)
-	require.NoError(t, err)
-
-	respBody, err := ioutil.ReadAll(resp.Body)
-	defer resp.Body.Close()
-	require.NoError(t, err)
-
-	return resp.StatusCode, string(respBody)
-}
-
-var _ monitor.Service = (*monitorServiceStub)(nil)
-
-type monitorServiceStub struct {
-}
-
-func (s *monitorServiceStub) Name() string {
-	return "Stub monitor service"
-}
-
-func (s *monitorServiceStub) Get(_ context.Context, id string, typ metric.Type) (*metric.Metric, error) {
-	v, _ := typ.New()
-	return &metric.Metric{
-		ID:    id,
-		Value: v,
-	}, nil
-}
-
-func (s *monitorServiceStub) GetAll(_ context.Context) ([]*metric.Metric, error) {
-	return make([]*metric.Metric, 0), nil
-}
-
-func (s *monitorServiceStub) Update(context.Context, *metric.Metric) error {
-	return nil
 }

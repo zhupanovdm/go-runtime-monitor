@@ -21,7 +21,8 @@ func main() {
 	cfg := config.New().FromCLI(flags)
 
 	mon := monitor.NewMonitor(trivial.NewGaugeStorage(), trivial.NewCounterStorage())
-	server := monitor.NewServer(cfg, handlers.NewMetricsRouter(handlers.NewMetricsHandler(mon)))
+	root := handlers.NewMetricsRouter(handlers.NewMetricsHandler(mon), handlers.NewMetricsApiHandler(mon))
+	server := monitor.NewServer(cfg, root)
 	server.Start(ctx)
 
 	logger.Info().Msgf("%v signal received", <-app.TerminationSignal())

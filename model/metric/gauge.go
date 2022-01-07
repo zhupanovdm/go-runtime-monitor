@@ -18,6 +18,9 @@ func (g Gauge) String() string {
 }
 
 func (g *Gauge) LoggerCtx(ctx zerolog.Context) zerolog.Context {
+	if g == nil {
+		return ctx
+	}
 	return logging.LogCtxUpdateWith(ctx.Float64(logging.MetricValueKey, float64(*g)), g.Type())
 }
 
