@@ -1,21 +1,19 @@
 package monitor
 
 import (
-	"flag"
 	"time"
+
+	"github.com/zhupanovdm/go-runtime-monitor/config"
 )
 
 type Config struct {
-	Server  string
+	*config.Config
 	Timeout time.Duration
 }
 
-func NewConfig() *Config {
-	return &Config{}
-}
-
-func (c *Config) FromCLI(flag *flag.FlagSet) *Config {
-	flag.StringVar(&c.Server, "monitor-srv", "http://localhost:8080", "monitor server URL")
-	flag.DurationVar(&c.Timeout, "client-timeout", 30*time.Second, "client timeout")
-	return c
+func NewConfig(cfg *config.Config) *Config {
+	return &Config{
+		Config:  cfg,
+		Timeout: 30 * time.Second,
+	}
 }

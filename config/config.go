@@ -2,25 +2,36 @@ package config
 
 import (
 	"flag"
+	"github.com/caarlos0/env/v6"
 	"time"
 )
 
 type Config struct {
-	ServerPort         int
-	PollInterval       time.Duration
-	ReportInterval     time.Duration
-	ReporterBufferSize int
+	Address        string        `env:"ADDRESS"`
+	PollInterval   time.Duration `env:"POLL_INTERVAL"`
+	ReportInterval time.Duration `env:"REPORT_INTERVAL"`
+	ReportBuffer   int
 }
 
 func New() *Config {
-	return &Config{}
+	return &Config{
+		Address:        "localhost:8080",
+		PollInterval:   2 * time.Second,
+		ReportInterval: 10 * time.Second,
+		ReportBuffer:   1024,
+	}
 }
 
-func (c *Config) FromCLI(flag *flag.FlagSet) *Config {
-	flag.IntVar(&c.ServerPort, "server-port", 8080, "Monitor server port")
+func (c *Config) LoadFromEnv() error {
+	if err := env.Parse(c); err != nil {
+		return err
+	}
+	return nil
+}
 
-	flag.DurationVar(&c.PollInterval, "poll-interval", 2*time.Second, "Metrics polling interval")
-	flag.DurationVar(&c.ReportInterval, "report-interval", 10*time.Second, "Metrics reporting interval")
-	flag.IntVar(&c.ReporterBufferSize, "reporter-buffer", 1024, "Reporter buffer size")
-	return c
+func (c *Config) FromCLI(flag *flag.FlagSet) error {
+	flag.StringVar(&c.Address, "address", c.Address, "Monitor server address")
+	flag.DurationVar(&c.PollInterval, "poll-interval", c.PollInterval, "Metrics polling interval")
+	flag.DurationVar(&c.ReportInterval, "report-interval", c.ReportInterval, "Metrics reporting interval")
+	return nil
 }

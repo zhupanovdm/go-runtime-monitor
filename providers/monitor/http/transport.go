@@ -1,6 +1,8 @@
 package http
 
 import (
+	"fmt"
+
 	"github.com/go-resty/resty/v2"
 
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/logging"
@@ -9,7 +11,7 @@ import (
 
 func NewClient(cfg *monitor.Config, name string) *resty.Client {
 	client := resty.New()
-	client.SetBaseURL(cfg.Server)
+	client.SetBaseURL(fmt.Sprintf("http://%s", cfg.Address))
 	client.SetTimeout(cfg.Timeout)
 	client.OnBeforeRequest(func(client *resty.Client, req *resty.Request) error {
 		ctx, cid := logging.SetIfAbsentCID(req.Context(), logging.NewCID())

@@ -17,8 +17,13 @@ func main() {
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName("Monitor app"))
 	logger.Info().Msg("starting runtime metrics monitor server")
 
-	flags := flag.NewFlagSet("monitor", flag.ExitOnError)
-	cfg := config.New().FromCLI(flags)
+	cfg := config.New()
+	if err := cfg.LoadFromEnv(); err != nil {
+		logger.Err(err).Msg("failed to load app config")
+	}
+	if err := cfg.FromCLI(flag.NewFlagSet("monitor", flag.ExitOnError)); err != nil {
+		logger.Err(err).Msg("failed to load app config")
+	}
 
 	mon := monitor.NewMonitor(trivial.NewGaugeStorage(), trivial.NewCounterStorage())
 	root := handlers.NewMetricsRouter(handlers.NewMetricsHandler(mon), handlers.NewMetricsApiHandler(mon))

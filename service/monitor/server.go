@@ -2,7 +2,6 @@ package monitor
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"sync"
 
@@ -43,7 +42,7 @@ func (srv *Server) Stop(ctx context.Context) {
 
 func NewServer(cfg *config.Config, handler http.Handler) *Server {
 	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%d", cfg.ServerPort),
+		Addr:    cfg.Address,
 		Handler: root(handler, CID, middleware.RealIP, Logger, middleware.Recoverer),
 	}
 	return &Server{Server: srv}

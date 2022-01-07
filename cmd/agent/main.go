@@ -19,10 +19,15 @@ func main() {
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName("Agent app"))
 	logger.Info().Msg("starting runtime metrics monitor agent")
 
-	flags := flag.NewFlagSet("agent", flag.ExitOnError)
-	cfg := config.New().FromCLI(flags)
+	cfg := config.New()
+	if err := cfg.LoadFromEnv(); err != nil {
+		logger.Err(err).Msg("failed to load app config")
+	}
+	if err := cfg.FromCLI(flag.NewFlagSet("agent", flag.ExitOnError)); err != nil {
+		logger.Err(err).Msg("failed to load app config")
+	}
 
-	mon := client.NewClient(monitor.NewConfig().FromCLI(flags))
+	mon := client.NewClient(monitor.NewConfig(cfg))
 	reporterSvc := agent.NewMetricsReporter(cfg, mon)
 	collectorSvc := agent.NewRuntimeMetricsCollector(cfg, reporterSvc)
 
