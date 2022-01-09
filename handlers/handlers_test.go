@@ -57,7 +57,7 @@ func (s *monitorServiceStub) Update(context.Context, *metric.Metric) error {
 	return nil
 }
 
-func testRequest(t *testing.T, ts *httptest.Server, method, path string, body []byte) (int, []byte) {
+func testRequest(t *testing.T, ts *httptest.Server, method, path string, body []byte) (*http.Response, []byte) {
 	if body == nil {
 		body = []byte{}
 	}
@@ -71,5 +71,5 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body []
 	defer resp.Body.Close()
 	require.NoError(t, err)
 
-	return resp.StatusCode, respBody
+	return resp, respBody
 }

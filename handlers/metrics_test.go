@@ -102,8 +102,8 @@ func TestMetricsHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			code, result := testRequest(t, ts, tt.method, tt.url, nil)
-			if assert.Equal(t, tt.wantStatus, code) {
+			resp, result := testRequest(t, ts, tt.method, tt.url, nil)
+			if assert.Equal(t, tt.wantStatus, resp.StatusCode) {
 				if len(tt.want) != 0 {
 					assert.Equal(t, []byte(tt.want), result)
 				}

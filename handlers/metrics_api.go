@@ -95,13 +95,12 @@ func (h *MetricsAPIHandler) Value(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	resp.Header().Set("Content-Type", "application/json")
 	if err = json.NewEncoder(resp).Encode(model.NewFromCanonical(mtr)); err != nil {
 		logger.Err(err).Msg("failed to encode response body")
 		httplib.Error(resp, http.StatusInternalServerError, nil)
 		return
 	}
-
-	resp.Header().Set("Content-Type", "application/json")
 }
 
 func (h *MetricsAPIHandler) decodeRequestBody(body io.Reader) (*model.Metrics, error) {

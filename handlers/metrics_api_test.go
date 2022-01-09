@@ -12,12 +12,13 @@ func TestMetricsApiHandler(t *testing.T) {
 	defer ts.Close()
 
 	tests := []struct {
-		name       string
-		method     string
-		url        string
-		body       string
-		wantStatus int
-		want       string
+		name            string
+		method          string
+		url             string
+		body            string
+		wantStatus      int
+		wantContentType string
+		want            string
 	}{
 		{
 			name:       "Update gauge",
@@ -27,12 +28,13 @@ func TestMetricsApiHandler(t *testing.T) {
 			wantStatus: http.StatusOK,
 		},
 		{
-			name:       "Get gauge",
-			method:     "POST",
-			url:        "/value",
-			body:       `{"id":"foo","type":"gauge"}`,
-			wantStatus: http.StatusOK,
-			want:       `{"id":"foo","type":"gauge","value":0}`,
+			name:            "Get gauge",
+			method:          "POST",
+			url:             "/value",
+			body:            `{"id":"foo","type":"gauge"}`,
+			wantStatus:      http.StatusOK,
+			wantContentType: "application/json",
+			want:            `{"id":"foo","type":"gauge","value":0}`,
 		},
 		{
 			name:       "Update counter",
@@ -42,12 +44,13 @@ func TestMetricsApiHandler(t *testing.T) {
 			wantStatus: http.StatusOK,
 		},
 		{
-			name:       "Get counter",
-			method:     "POST",
-			url:        "/value",
-			body:       `{"id":"foo","type":"counter"}`,
-			wantStatus: http.StatusOK,
-			want:       `{"id":"foo","type":"counter","delta":0}`,
+			name:            "Get counter",
+			method:          "POST",
+			url:             "/value",
+			body:            `{"id":"foo","type":"counter"}`,
+			wantStatus:      http.StatusOK,
+			wantContentType: "application/json",
+			want:            `{"id":"foo","type":"counter","delta":0}`,
 		},
 		{
 			name:       "Get absent metric",
@@ -116,10 +119,13 @@ func TestMetricsApiHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			code, result := testRequest(t, ts, tt.method, tt.url, []byte(tt.body))
-			if assert.Equal(t, tt.wantStatus, code) {
+			resp, result := testRequest(t, ts, tt.method, tt.url, []byte(tt.body))
+			if assert.Equal(t, tt.wantStatus, resp.StatusCode) {
 				if len(tt.want) != 0 {
 					assert.JSONEq(t, tt.want, string(result))
+				}
+				if len(tt.wantContentType) != 0 {
+					assert.Contains(t, resp.Header.Get("Content-Type"), tt.wantContentType)
 				}
 			}
 		})
