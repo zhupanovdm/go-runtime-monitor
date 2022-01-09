@@ -11,18 +11,30 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/zhupanovdm/go-runtime-monitor/model/metric"
+	"github.com/zhupanovdm/go-runtime-monitor/pkg/task"
 	"github.com/zhupanovdm/go-runtime-monitor/service/monitor"
 )
 
 const notFoundSample = "not-found"
 
-func NewServer(svc monitor.Service) *httptest.Server {
+func NewServer(svc monitor.Monitor) *httptest.Server {
 	return httptest.NewServer(NewMetricsRouter(NewMetricsHandler(svc), NewMetricsApiHandler(svc)))
 }
 
-var _ monitor.Service = (*monitorServiceStub)(nil)
+var _ monitor.Monitor = (*monitorServiceStub)(nil)
 
-type monitorServiceStub struct {
+type monitorServiceStub struct{}
+
+func (s *monitorServiceStub) BackgroundTask() task.Task {
+	return task.VoidTask
+}
+
+func (s *monitorServiceStub) GetAll(context.Context) (metric.List, error) {
+	return make([]*metric.Metric, 0), nil
+}
+
+func (s *monitorServiceStub) Restore(context.Context) error {
+	return nil
 }
 
 func (s *monitorServiceStub) Name() string {
@@ -39,10 +51,6 @@ func (s *monitorServiceStub) Get(_ context.Context, id string, typ metric.Type) 
 		ID:    id,
 		Value: v,
 	}, nil
-}
-
-func (s *monitorServiceStub) GetAll(_ context.Context) ([]*metric.Metric, error) {
-	return make([]*metric.Metric, 0), nil
 }
 
 func (s *monitorServiceStub) Update(context.Context, *metric.Metric) error {

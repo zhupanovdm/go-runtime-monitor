@@ -9,7 +9,7 @@ import (
 	"github.com/zhupanovdm/go-runtime-monitor/storage"
 )
 
-const trivialGaugeStorageName = "Trivial storage of Gauge"
+const trivialGaugeStorageName = "Trivial gauge storage"
 
 var _ storage.GaugeStorage = (*trivialGaugeStorage)(nil)
 
@@ -32,6 +32,20 @@ func (s *trivialGaugeStorage) Update(ctx context.Context, id string, gauge metri
 	return nil
 }
 
+func (s *trivialGaugeStorage) UpdateBulk(ctx context.Context, list metric.List) error {
+	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(trivialCounterStorageName), logging.WithCID(ctx))
+
+	s.Lock()
+	defer s.Unlock()
+	for _, m := range list {
+		s.data[m.ID] = float64(*m.Value.(*metric.Gauge))
+	}
+
+	logger.Trace().Msgf("gauge: %d records updated", len(list))
+	return nil
+}
+
 func (s *trivialGaugeStorage) Get(ctx context.Context, id string) (*metric.Metric, error) {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(trivialGaugeStorageName), logging.WithCID(ctx))
@@ -49,7 +63,7 @@ func (s *trivialGaugeStorage) Get(ctx context.Context, id string) (*metric.Metri
 	return metric.NewGaugeMetric(id, metric.Gauge(value)), nil
 }
 
-func (s *trivialGaugeStorage) GetAll(ctx context.Context) (list []*metric.Metric, _ error) {
+func (s *trivialGaugeStorage) GetAll(ctx context.Context) (list metric.List, _ error) {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(trivialGaugeStorageName), logging.WithCID(ctx))
 

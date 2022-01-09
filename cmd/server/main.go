@@ -3,17 +3,20 @@ package main
 import (
 	"context"
 	"flag"
+	"sync"
 
 	"github.com/zhupanovdm/go-runtime-monitor/config"
 	"github.com/zhupanovdm/go-runtime-monitor/handlers"
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/app"
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/logging"
+	"github.com/zhupanovdm/go-runtime-monitor/pkg/task"
 	"github.com/zhupanovdm/go-runtime-monitor/service/monitor"
+	"github.com/zhupanovdm/go-runtime-monitor/storage/file"
 	"github.com/zhupanovdm/go-runtime-monitor/storage/trivial"
 )
 
 func main() {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName("Monitor app"))
 	logger.Info().Msg("starting runtime metrics monitor server")
 
@@ -25,11 +28,20 @@ func main() {
 		logger.Err(err).Msg("failed to load app config")
 	}
 
-	mon := monitor.NewMonitor(trivial.NewGaugeStorage(), trivial.NewCounterStorage())
+	mon := monitor.NewMonitor(cfg, file.NewStorage(cfg), trivial.NewGaugeStorage(), trivial.NewCounterStorage())
+	if err := mon.Restore(ctx); err != nil {
+		logger.Err(err).Msg("failed to restore metrics")
+	}
+
+	var wg sync.WaitGroup
+	go mon.BackgroundTask().With(task.CompletionWait(&wg))(ctx)
+
 	root := handlers.NewMetricsRouter(handlers.NewMetricsHandler(mon), handlers.NewMetricsApiHandler(mon))
 	server := monitor.NewServer(cfg, root)
 	server.Start(ctx)
 
 	logger.Info().Msgf("%v signal received", <-app.TerminationSignal())
 	server.Stop(ctx)
+	cancel()
+	wg.Wait()
 }

@@ -16,7 +16,7 @@ import (
 const metricsHandlerAPIName = "Metrics REST API handler"
 
 type MetricsApiHandler struct {
-	monitor monitor.Service
+	monitor monitor.Monitor
 }
 
 func (h *MetricsApiHandler) Update(resp http.ResponseWriter, req *http.Request) {
@@ -108,6 +108,6 @@ func (h *MetricsApiHandler) decodeRequestBody(body io.Reader) (*model.Metrics, e
 	return metrics, nil
 }
 
-func NewMetricsApiHandler(service monitor.Service) *MetricsApiHandler {
+func NewMetricsApiHandler(service monitor.Monitor) *MetricsApiHandler {
 	return &MetricsApiHandler{service}
 }

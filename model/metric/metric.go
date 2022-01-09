@@ -1,8 +1,9 @@
 package metric
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
-	"sort"
 
 	"github.com/rs/zerolog"
 
@@ -10,26 +11,73 @@ import (
 )
 
 var _ logging.LogCtxProvider = (*Metric)(nil)
+var _ json.Marshaler = (*Metric)(nil)
+var _ json.Unmarshaler = (*Metric)(nil)
 
 type Metric struct {
 	ID string
 	Value
 }
 
-var _ sort.Interface = (ByString)(nil)
-
-type ByString []*Metric
-
-func (m ByString) Len() int           { return len(m) }
-func (m ByString) Swap(i, j int)      { m[i], m[j] = m[j], m[i] }
-func (m ByString) Less(i, j int) bool { return m[i].String() < m[j].String() }
-
 func (m *Metric) String() string {
+	if m.Value == nil {
+		return fmt.Sprintf("?/%s/?", m.ID)
+	}
 	return fmt.Sprintf("%s/%s/%v", m.Value.Type(), m.ID, m.Value)
 }
 
 func (m *Metric) LoggerCtx(ctx zerolog.Context) zerolog.Context {
 	return logging.LogCtxUpdateWith(ctx.Str(logging.MetricIDKey, m.ID), m.Value)
+}
+
+func (m Metric) MarshalJSON() ([]byte, error) {
+	if m.Value == nil {
+		return nil, errors.New("metric value is not specified")
+	}
+
+	type MetricAlias Metric
+	mtr := &struct {
+		MetricAlias
+		Type Type
+	}{
+		MetricAlias: MetricAlias(m),
+		Type:        m.Value.Type(),
+	}
+	return json.Marshal(mtr)
+}
+
+func (m *Metric) UnmarshalJSON(bytes []byte) error {
+	type MetricAlias Metric
+	mtr := &struct {
+		*MetricAlias
+		Type  Type
+		Value json.RawMessage
+	}{
+		MetricAlias: (*MetricAlias)(m),
+	}
+
+	if err := json.Unmarshal(bytes, mtr); err != nil {
+		return err
+	}
+
+	switch mtr.Type {
+	case GaugeType:
+		v := Gauge(0)
+		if err := json.Unmarshal(mtr.Value, &v); err != nil {
+			return err
+		}
+		m.Value = &v
+	case CounterType:
+		v := Counter(0)
+		if err := json.Unmarshal(mtr.Value, &v); err != nil {
+			return err
+		}
+		m.Value = &v
+	default:
+		return fmt.Errorf("json decoder: unknown type %v", mtr.Type)
+	}
+
+	return nil
 }
 
 func NewGaugeMetric(id string, gauge Gauge) *Metric {

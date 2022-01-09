@@ -11,6 +11,9 @@ type Config struct {
 	PollInterval   time.Duration `env:"POLL_INTERVAL"`
 	ReportInterval time.Duration `env:"REPORT_INTERVAL"`
 	ReportBuffer   int
+	StoreInterval  time.Duration `env:"STORE_INTERVAL"`
+	StoreFile      string        `env:"STORE_FILE"`
+	Restore        bool          `env:"RESTORE"`
 }
 
 func New() *Config {
@@ -19,6 +22,9 @@ func New() *Config {
 		PollInterval:   2 * time.Second,
 		ReportInterval: 10 * time.Second,
 		ReportBuffer:   1024,
+		StoreInterval:  10 * time.Second,
+		StoreFile:      "/tmp/devops-metrics-db.json",
+		Restore:        true,
 	}
 }
 
@@ -31,7 +37,12 @@ func (c *Config) LoadFromEnv() error {
 
 func (c *Config) FromCLI(flag *flag.FlagSet) error {
 	flag.StringVar(&c.Address, "address", c.Address, "Monitor server address")
-	flag.DurationVar(&c.PollInterval, "poll-interval", c.PollInterval, "Metrics polling interval")
-	flag.DurationVar(&c.ReportInterval, "report-interval", c.ReportInterval, "Metrics reporting interval")
+	flag.DurationVar(&c.ReportInterval, "store-interval", c.ReportInterval, "Monitor store interval")
+	flag.DurationVar(&c.ReportInterval, "store-file", c.ReportInterval, "Monitor store file")
+	flag.DurationVar(&c.ReportInterval, "restore", c.ReportInterval, "Monitor will restore metrics at startup")
+
+	flag.DurationVar(&c.PollInterval, "poll-interval", c.PollInterval, "Agent polling interval")
+	flag.DurationVar(&c.ReportInterval, "report-interval", c.ReportInterval, "Agent reporting interval")
+
 	return nil
 }

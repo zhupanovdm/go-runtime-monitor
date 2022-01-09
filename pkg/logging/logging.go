@@ -24,12 +24,14 @@ const (
 // GetOrCreateLogger returns context bound logger.
 // Creates a new one with correlation ID field than binds it to context.
 func GetOrCreateLogger(ctx context.Context, options ...Option) (context.Context, zerolog.Logger) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	if value := ctx.Value(ctxKeyLogger); value != nil {
 		if logger, ok := value.(zerolog.Logger); ok {
 			return ctx, ApplyOptions(logger, options...)
 		}
 	}
-
 	logger := NewLogger(options...)
 	return SetLogger(ctx, logger), logger
 }

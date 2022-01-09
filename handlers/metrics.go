@@ -17,7 +17,7 @@ import (
 const metricsHandlerName = "Metrics HTTP handler"
 
 type MetricsHandler struct {
-	monitor monitor.Service
+	monitor monitor.Monitor
 }
 
 func (h *MetricsHandler) Update(resp http.ResponseWriter, req *http.Request) {
@@ -102,21 +102,21 @@ func (h *MetricsHandler) GetAll(resp http.ResponseWriter, req *http.Request) {
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(metricsHandlerName), logging.WithCID(ctx))
 	logger.Info().Msg("handling [GetAll]")
 
-	all, err := h.monitor.GetAll(ctx)
+	list, err := h.monitor.GetAll(ctx)
 	if err != nil {
 		logger.Err(err).Msg("failed to query metrics")
 		httplib.Error(resp, http.StatusInternalServerError, nil)
 	}
-	logger.Trace().Msgf("got %d records", len(all))
+	logger.Trace().Msgf("got %d records", len(list))
 
-	sort.Sort(metric.ByString(all))
+	sort.Sort(metric.ByString(list))
 
-	if err := view.Index.Execute(resp, all); err != nil {
+	if err := view.Index.Execute(resp, list); err != nil {
 		logger.Err(err).Msg("failed to write response body")
 		httplib.Error(resp, http.StatusInternalServerError, nil)
 	}
 }
 
-func NewMetricsHandler(service monitor.Service) *MetricsHandler {
+func NewMetricsHandler(service monitor.Monitor) *MetricsHandler {
 	return &MetricsHandler{service}
 }
