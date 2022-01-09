@@ -51,6 +51,7 @@ func (h *MetricsApiHandler) Update(resp http.ResponseWriter, req *http.Request) 
 	if err := h.monitor.Update(ctx, mtr); err != nil {
 		logger.Err(err).Msg("failed to persist metric")
 		httplib.Error(resp, http.StatusInternalServerError, nil)
+		return
 	}
 }
 
@@ -97,7 +98,10 @@ func (h *MetricsApiHandler) Value(resp http.ResponseWriter, req *http.Request) {
 	if err = json.NewEncoder(resp).Encode(model.NewFromCanonical(mtr)); err != nil {
 		logger.Err(err).Msg("failed to encode response body")
 		httplib.Error(resp, http.StatusInternalServerError, nil)
+		return
 	}
+
+	resp.Header().Set("Content-Type", "application/json")
 }
 
 func (h *MetricsApiHandler) decodeRequestBody(body io.Reader) (*model.Metrics, error) {
