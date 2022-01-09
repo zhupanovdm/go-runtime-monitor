@@ -15,11 +15,11 @@ import (
 
 const metricsHandlerAPIName = "Metrics REST API handler"
 
-type MetricsApiHandler struct {
+type MetricsAPIHandler struct {
 	monitor monitor.Monitor
 }
 
-func (h *MetricsApiHandler) Update(resp http.ResponseWriter, req *http.Request) {
+func (h *MetricsAPIHandler) Update(resp http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 
 	ctx, _ := logging.SetIfAbsentCID(req.Context(), logging.NewCID())
@@ -55,7 +55,7 @@ func (h *MetricsApiHandler) Update(resp http.ResponseWriter, req *http.Request) 
 	}
 }
 
-func (h *MetricsApiHandler) Value(resp http.ResponseWriter, req *http.Request) {
+func (h *MetricsAPIHandler) Value(resp http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 
 	ctx, _ := logging.SetIfAbsentCID(req.Context(), logging.NewCID())
@@ -104,7 +104,7 @@ func (h *MetricsApiHandler) Value(resp http.ResponseWriter, req *http.Request) {
 	resp.Header().Set("Content-Type", "application/json")
 }
 
-func (h *MetricsApiHandler) decodeRequestBody(body io.Reader) (*model.Metrics, error) {
+func (h *MetricsAPIHandler) decodeRequestBody(body io.Reader) (*model.Metrics, error) {
 	metrics := &model.Metrics{}
 	if err := json.NewDecoder(body).Decode(&metrics); err != nil {
 		return nil, fmt.Errorf("decoder: error while decoding JSON: %w", err)
@@ -112,6 +112,6 @@ func (h *MetricsApiHandler) decodeRequestBody(body io.Reader) (*model.Metrics, e
 	return metrics, nil
 }
 
-func NewMetricsApiHandler(service monitor.Monitor) *MetricsApiHandler {
-	return &MetricsApiHandler{service}
+func NewMetricsAPIHandler(service monitor.Monitor) *MetricsAPIHandler {
+	return &MetricsAPIHandler{service}
 }

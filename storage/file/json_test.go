@@ -44,7 +44,7 @@ func Test_jsonReader_Read(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			src := io.NopCloser(bytes.NewBuffer([]byte(strings.Join(tt.sample, "\n"))))
-			list, err := NewJsonReader(context.TODO(), src).Read()
+			list, err := NewJSONReader(context.TODO(), src).Read()
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else if assert.NoError(t, err) {
@@ -94,7 +94,7 @@ func Test_jsonWriter_Write(t *testing.T) {
 				ReadCloser: io.NopCloser(buf),
 				Writer:     buf,
 			}
-			err := NewJsonWriter(context.TODO(), dest).Write(tt.list)
+			err := NewJSONWriter(context.TODO(), dest).Write(tt.list)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else if assert.NoError(t, err) {

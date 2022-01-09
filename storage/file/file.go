@@ -29,13 +29,12 @@ func (s *fileStorage) GetAll(ctx context.Context) (metric.List, error) {
 	s.RLock()
 	defer s.RUnlock()
 
-	r, err := NewJsonFileReader(ctx, s.filename)
-	defer r.Close()
+	r, err := NewJSONFileReader(ctx, s.filename)
 	if err != nil {
 		logger.Err(err).Msg("file store: failed to open storage for reading")
 		return nil, err
 	}
-
+	defer r.Close()
 	return r.Read()
 }
 
@@ -49,11 +48,11 @@ func (s *fileStorage) UpdateBulk(ctx context.Context, list metric.List) error {
 	s.Lock()
 	defer s.Unlock()
 
-	w, err := NewJsonFileWriter(ctx, s.filename)
-	defer w.Close()
+	w, err := NewJSONFileWriter(ctx, s.filename)
 	if err != nil {
 		return err
 	}
+	defer w.Close()
 	return w.Write(list)
 }
 

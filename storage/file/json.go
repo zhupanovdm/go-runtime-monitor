@@ -44,7 +44,7 @@ func (w *jsonWriter) Close() {
 	}
 }
 
-func NewJsonWriter(ctx context.Context, dest io.WriteCloser) *jsonWriter {
+func NewJSONWriter(ctx context.Context, dest io.WriteCloser) *jsonWriter {
 	return &jsonWriter{
 		ctx:     ctx,
 		dest:    dest,
@@ -52,7 +52,7 @@ func NewJsonWriter(ctx context.Context, dest io.WriteCloser) *jsonWriter {
 	}
 }
 
-func NewJsonFileWriter(ctx context.Context, fileName string) (*jsonWriter, error) {
+func NewJSONFileWriter(ctx context.Context, fileName string) (*jsonWriter, error) {
 	_, logger := logging.GetOrCreateLogger(ctx)
 
 	if err := os.Remove(fileName); err != nil && err != fs.ErrNotExist {
@@ -67,7 +67,7 @@ func NewJsonFileWriter(ctx context.Context, fileName string) (*jsonWriter, error
 	}
 
 	logger.Trace().Msgf("json write: opened for write: %s", file.Name())
-	return NewJsonWriter(ctx, file), nil
+	return NewJSONWriter(ctx, file), nil
 }
 
 type jsonReader struct {
@@ -109,7 +109,7 @@ func (r *jsonReader) Close() {
 	}
 }
 
-func NewJsonReader(ctx context.Context, src io.ReadCloser) *jsonReader {
+func NewJSONReader(ctx context.Context, src io.ReadCloser) *jsonReader {
 	return &jsonReader{
 		ctx:     ctx,
 		src:     src,
@@ -117,7 +117,7 @@ func NewJsonReader(ctx context.Context, src io.ReadCloser) *jsonReader {
 	}
 }
 
-func NewJsonFileReader(ctx context.Context, fileName string) (*jsonReader, error) {
+func NewJSONFileReader(ctx context.Context, fileName string) (*jsonReader, error) {
 	_, logger := logging.GetOrCreateLogger(ctx)
 	file, err := os.OpenFile(fileName, os.O_RDONLY|os.O_CREATE, 0777)
 	if err != nil {
@@ -126,5 +126,5 @@ func NewJsonFileReader(ctx context.Context, fileName string) (*jsonReader, error
 	}
 
 	logger.Trace().Msgf("json read: opened for read: %s", file.Name())
-	return NewJsonReader(ctx, file), nil
+	return NewJSONReader(ctx, file), nil
 }

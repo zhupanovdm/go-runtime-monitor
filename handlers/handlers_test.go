@@ -18,7 +18,7 @@ import (
 const notFoundSample = "not-found"
 
 func NewServer(svc monitor.Monitor) *httptest.Server {
-	return httptest.NewServer(NewMetricsRouter(NewMetricsHandler(svc), NewMetricsApiHandler(svc)))
+	return httptest.NewServer(NewMetricsRouter(NewMetricsHandler(svc), NewMetricsAPIHandler(svc)))
 }
 
 var _ monitor.Monitor = (*monitorServiceStub)(nil)

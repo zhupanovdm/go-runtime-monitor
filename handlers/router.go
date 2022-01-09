@@ -6,7 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func NewMetricsRouter(metricsHandler *MetricsHandler, metricsAPI *MetricsApiHandler) http.Handler {
+func NewMetricsRouter(metricsHandler *MetricsHandler, metricsAPI *MetricsAPIHandler) http.Handler {
 	router := chi.NewRouter()
 	router.Get("/", metricsHandler.GetAll)
 	router.Route("/update", func(r chi.Router) {

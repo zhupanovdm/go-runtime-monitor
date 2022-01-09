@@ -36,7 +36,7 @@ func main() {
 	var wg sync.WaitGroup
 	go mon.BackgroundTask().With(task.CompletionWait(&wg))(ctx)
 
-	root := handlers.NewMetricsRouter(handlers.NewMetricsHandler(mon), handlers.NewMetricsApiHandler(mon))
+	root := handlers.NewMetricsRouter(handlers.NewMetricsHandler(mon), handlers.NewMetricsAPIHandler(mon))
 	server := monitor.NewServer(cfg, root)
 	server.Start(ctx)
 
