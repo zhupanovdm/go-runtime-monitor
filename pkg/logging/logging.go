@@ -32,6 +32,7 @@ func GetOrCreateLogger(ctx context.Context, options ...Option) (context.Context,
 			return ctx, ApplyOptions(logger, options...)
 		}
 	}
+
 	logger := NewLogger(options...)
 	return SetLogger(ctx, logger), logger
 }
