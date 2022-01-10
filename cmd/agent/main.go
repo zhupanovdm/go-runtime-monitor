@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"sync"
+	"time"
 
 	"github.com/zhupanovdm/go-runtime-monitor/config"
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/app"
@@ -14,17 +15,21 @@ import (
 	"github.com/zhupanovdm/go-runtime-monitor/service/agent"
 )
 
+func cli(cfg *config.Config, flag *flag.FlagSet) {
+	flag.StringVar(&cfg.Address, "a", "localhost:8080", "Monitor server address")
+	flag.DurationVar(&cfg.ReportInterval, "r", 10*time.Second, "Agent reporting interval")
+	flag.DurationVar(&cfg.PollInterval, "p", 2*time.Second, "Agent polling interval")
+}
+
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName("Agent app"))
 	logger.Info().Msg("starting runtime metrics monitor agent")
 
-	cfg := config.New()
-	if err := cfg.LoadFromEnv(); err != nil {
-		logger.Err(err).Msg("failed to load app config")
-	}
-	if err := cfg.FromCLI(flag.NewFlagSet("agent", flag.ExitOnError)); err != nil {
-		logger.Err(err).Msg("failed to load app config")
+	cfg, err := config.Load(cli)
+	if err != nil {
+		logger.Err(err).Msg("failed to load agent config")
+		return
 	}
 
 	mon := client.NewClient(monitor.NewConfig(cfg))

@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"sync"
+	"time"
 
 	"github.com/zhupanovdm/go-runtime-monitor/config"
 	"github.com/zhupanovdm/go-runtime-monitor/handlers"
@@ -15,17 +16,22 @@ import (
 	"github.com/zhupanovdm/go-runtime-monitor/storage/trivial"
 )
 
+func cli(cfg *config.Config, flag *flag.FlagSet) {
+	flag.StringVar(&cfg.Address, "a", "localhost:8080", "Monitor server address")
+	flag.BoolVar(&cfg.Restore, "r", true, "Monitor will restore metrics at startup")
+	flag.DurationVar(&cfg.StoreInterval, "i", 300*time.Second, "Monitor store interval")
+	flag.StringVar(&cfg.StoreFile, "f", "/tmp/devops-metrics-db.json", "Monitor store file")
+}
+
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName("Monitor app"))
 	logger.Info().Msg("starting runtime metrics monitor server")
 
-	cfg := config.New()
-	if err := cfg.LoadFromEnv(); err != nil {
-		logger.Err(err).Msg("failed to load app config")
-	}
-	if err := cfg.FromCLI(flag.NewFlagSet("monitor", flag.ExitOnError)); err != nil {
-		logger.Err(err).Msg("failed to load app config")
+	cfg, err := config.Load(cli)
+	if err != nil {
+		logger.Err(err).Msg("failed to load server config")
+		return
 	}
 
 	mon := monitor.NewMonitor(cfg, file.NewStorage(cfg), trivial.NewGaugeStorage(), trivial.NewCounterStorage())
