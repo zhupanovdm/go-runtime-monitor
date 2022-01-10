@@ -119,13 +119,13 @@ func TestMetricsApiHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resp, result := testRequest(t, ts, tt.method, tt.url, []byte(tt.body))
-			if assert.Equal(t, tt.wantStatus, resp.StatusCode) {
+			status, result, hdr := testRequest(t, ts, tt.method, tt.url, []byte(tt.body))
+			if assert.Equal(t, tt.wantStatus, status) {
 				if len(tt.want) != 0 {
 					assert.JSONEq(t, tt.want, string(result))
 				}
 				if len(tt.wantContentType) != 0 {
-					assert.Contains(t, resp.Header.Get("Content-Type"), tt.wantContentType)
+					assert.Contains(t, hdr.Get("Content-Type"), tt.wantContentType)
 				}
 			}
 		})
