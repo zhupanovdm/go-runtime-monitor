@@ -83,7 +83,7 @@ func (h *MetricsAPIHandler) Value(resp http.ResponseWriter, req *http.Request) {
 
 	mtr := body.ToCanonical()
 
-	logger.UpdateContext(logging.LogCtxFrom(mtr))
+	logger.UpdateContext(logging.LogCtxFrom(logging.LogCtxKeyStr(logging.MetricIDKey, mtr.ID), mtr.Type()))
 	ctx = logging.SetLogger(ctx, logger)
 	if mtr, err = h.monitor.Get(ctx, mtr.ID, mtr.Type()); err != nil {
 		logger.Err(err).Msg("metric read failed")

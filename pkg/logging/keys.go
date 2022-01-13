@@ -29,6 +29,17 @@ type LogCtxProvider interface {
 	LoggerCtx(ctx zerolog.Context) zerolog.Context
 }
 
+var _ LogCtxProvider = (LoggerCtxUpdate)(nil)
+
+type LoggerCtxUpdate func(ctx zerolog.Context) zerolog.Context
+
+func (upd LoggerCtxUpdate) LoggerCtx(ctx zerolog.Context) zerolog.Context {
+	if upd != nil {
+		return upd(ctx)
+	}
+	return ctx
+}
+
 func LogCtxUpdateWith(ctx zerolog.Context, providers ...LogCtxProvider) zerolog.Context {
 	for _, p := range providers {
 		ctx = p.LoggerCtx(ctx)
@@ -36,13 +47,13 @@ func LogCtxUpdateWith(ctx zerolog.Context, providers ...LogCtxProvider) zerolog.
 	return ctx
 }
 
-func LogCtxFrom(providers ...LogCtxProvider) func(ctx zerolog.Context) zerolog.Context {
+func LogCtxFrom(providers ...LogCtxProvider) LoggerCtxUpdate {
 	return func(ctx zerolog.Context) zerolog.Context {
 		return LogCtxUpdateWith(ctx, providers...)
 	}
 }
 
-func LogCtxKeyStr(key string, value string) func(ctx zerolog.Context) zerolog.Context {
+func LogCtxKeyStr(key string, value string) LoggerCtxUpdate {
 	return func(ctx zerolog.Context) zerolog.Context {
 		return ctx.Str(key, value)
 	}
