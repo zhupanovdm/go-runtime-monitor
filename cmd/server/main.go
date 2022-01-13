@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"sync"
-	"time"
 
 	"github.com/zhupanovdm/go-runtime-monitor/config"
 	"github.com/zhupanovdm/go-runtime-monitor/handlers"
@@ -17,10 +16,10 @@ import (
 )
 
 func cli(cfg *config.Config, flag *flag.FlagSet) {
-	flag.StringVar(&cfg.Address, "a", "localhost:8080", "Monitor server address")
-	flag.BoolVar(&cfg.Restore, "r", true, "Monitor will restore metrics at startup")
-	flag.DurationVar(&cfg.StoreInterval, "i", 300*time.Second, "Monitor store interval")
-	flag.StringVar(&cfg.StoreFile, "f", "/tmp/devops-metrics-db.json", "Monitor store file")
+	flag.StringVar(&cfg.Address, "a", config.DefaultAddress, "Monitor server address")
+	flag.BoolVar(&cfg.Restore, "r", config.DefaultRestore, "Monitor will restore metrics at startup")
+	flag.DurationVar(&cfg.StoreInterval, "i", config.DefaultStoreInterval, "Monitor store interval")
+	flag.StringVar(&cfg.StoreFile, "f", config.DefaultStoreFile, "Monitor store file")
 }
 
 func main() {

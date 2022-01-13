@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"sync"
-	"time"
 
 	"github.com/zhupanovdm/go-runtime-monitor/config"
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/app"
@@ -16,9 +15,9 @@ import (
 )
 
 func cli(cfg *config.Config, flag *flag.FlagSet) {
-	flag.StringVar(&cfg.Address, "a", "localhost:8080", "Monitor server address")
-	flag.DurationVar(&cfg.ReportInterval, "r", 10*time.Second, "Agent reporting interval")
-	flag.DurationVar(&cfg.PollInterval, "p", 2*time.Second, "Agent polling interval")
+	flag.StringVar(&cfg.Address, "a", config.DefaultAddress, "Monitor server address")
+	flag.DurationVar(&cfg.ReportInterval, "r", config.DefaultReportInterval, "Agent reporting interval")
+	flag.DurationVar(&cfg.PollInterval, "p", config.DefaultPollInterval, "Agent polling interval")
 }
 
 func main() {

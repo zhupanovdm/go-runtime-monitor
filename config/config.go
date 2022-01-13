@@ -7,6 +7,15 @@ import (
 	"github.com/caarlos0/env/v6"
 )
 
+const (
+	DefaultAddress        = "localhost:8080"
+	DefaultReportInterval = 10 * time.Second
+	DefaultPollInterval   = 2 * time.Second
+	DefaultRestore        = true
+	DefaultStoreInterval  = 300 * time.Second
+	DefaultStoreFile      = "/tmp/devops-metrics-db.json"
+)
+
 type CLIExport func(*Config, *flag.FlagSet)
 
 type Config struct {
