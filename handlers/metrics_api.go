@@ -69,13 +69,7 @@ func (h *MetricsAPIHandler) Value(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if err = body.Validate(model.CheckType); err != nil {
-		logger.Err(err).Msg("type check failed")
-		httplib.Error(resp, http.StatusNotImplemented, err)
-		return
-	}
-
-	if err = body.Validate(model.CheckID); err != nil {
+	if err = body.Validate(model.CheckID, model.CheckType); err != nil {
 		logger.Err(err).Msg("validation failed")
 		httplib.Error(resp, http.StatusBadRequest, err)
 		return

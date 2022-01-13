@@ -85,7 +85,7 @@ func TestMetricsApiHandler(t *testing.T) {
 			method:     "POST",
 			url:        "/value",
 			body:       `{"id":"bar","type":"baz"}`,
-			wantStatus: http.StatusNotImplemented,
+			wantStatus: http.StatusBadRequest,
 		},
 		{
 			name:       "Update metric without id 1",
