@@ -9,20 +9,30 @@ import (
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/app"
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/logging"
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/task"
-	"github.com/zhupanovdm/go-runtime-monitor/providers/monitor/http"
+	"github.com/zhupanovdm/go-runtime-monitor/providers/monitor"
+	client "github.com/zhupanovdm/go-runtime-monitor/providers/monitor/http/v2"
 	"github.com/zhupanovdm/go-runtime-monitor/service/agent"
 )
+
+func cli(cfg *config.Config, flag *flag.FlagSet) {
+	flag.StringVar(&cfg.Address, "a", config.DefaultAddress, "Monitor server address")
+	flag.DurationVar(&cfg.ReportInterval, "r", config.DefaultReportInterval, "Agent reporting interval")
+	flag.DurationVar(&cfg.PollInterval, "p", config.DefaultPollInterval, "Agent polling interval")
+}
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName("Agent app"))
 	logger.Info().Msg("starting runtime metrics monitor agent")
 
-	flags := flag.NewFlagSet("agent", flag.ExitOnError)
-	cfg := config.New().FromCLI(flags)
+	cfg, err := config.Load(cli)
+	if err != nil {
+		logger.Err(err).Msg("failed to load agent config")
+		return
+	}
 
-	client := http.NewClient(http.NewConfig().FromCLI(flags))
-	reporterSvc := agent.NewMetricsReporter(cfg, client)
+	mon := client.NewClient(monitor.NewConfig(cfg))
+	reporterSvc := agent.NewMetricsReporter(cfg, mon)
 	collectorSvc := agent.NewRuntimeMetricsCollector(cfg, reporterSvc)
 
 	var wg sync.WaitGroup

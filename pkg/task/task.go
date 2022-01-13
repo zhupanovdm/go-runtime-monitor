@@ -6,6 +6,9 @@ import (
 	"time"
 )
 
+// VoidTask is used to define absence of work
+var VoidTask = Task(func(ctx context.Context) {})
+
 // Task represents a unit of work to be done in specified context.
 type Task func(ctx context.Context)
 

@@ -7,11 +7,13 @@ import (
 	"github.com/zhupanovdm/go-runtime-monitor/pkg"
 )
 
-type Service interface {
-	pkg.Service
+type Monitor interface {
+	pkg.BackgroundService
+
+	Restore(ctx context.Context) error
 
 	Get(ctx context.Context, id string, typ metric.Type) (*metric.Metric, error)
-	GetAll(ctx context.Context) ([]*metric.Metric, error)
+	GetAll(ctx context.Context) (metric.List, error)
 
 	Update(ctx context.Context, mtr *metric.Metric) error
 }

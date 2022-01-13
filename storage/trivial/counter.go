@@ -9,7 +9,7 @@ import (
 	"github.com/zhupanovdm/go-runtime-monitor/storage"
 )
 
-const trivialCounterStorageName = "Trivial storage of Counter"
+const trivialCounterStorageName = "Trivial counter storage"
 
 var _ storage.CounterStorage = (*trivialCounterStorage)(nil)
 
@@ -32,6 +32,20 @@ func (s *trivialCounterStorage) Update(ctx context.Context, id string, counter m
 	return nil
 }
 
+func (s *trivialCounterStorage) UpdateBulk(ctx context.Context, list metric.List) error {
+	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(trivialCounterStorageName), logging.WithCID(ctx))
+
+	s.Lock()
+	defer s.Unlock()
+	for _, m := range list {
+		s.data[m.ID] += int64(*m.Value.(*metric.Counter))
+	}
+
+	logger.Trace().Msgf("counter: %d records updated", len(list))
+	return nil
+}
+
 func (s *trivialCounterStorage) Get(ctx context.Context, id string) (*metric.Metric, error) {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(trivialCounterStorageName), logging.WithCID(ctx))
@@ -49,7 +63,7 @@ func (s *trivialCounterStorage) Get(ctx context.Context, id string) (*metric.Met
 	return metric.NewCounterMetric(id, metric.Counter(value)), nil
 }
 
-func (s *trivialCounterStorage) GetAll(ctx context.Context) (list []*metric.Metric, _ error) {
+func (s *trivialCounterStorage) GetAll(ctx context.Context) (list metric.List, _ error) {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(trivialCounterStorageName), logging.WithCID(ctx))
 

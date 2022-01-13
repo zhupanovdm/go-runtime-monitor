@@ -18,6 +18,9 @@ func (c Counter) String() string {
 }
 
 func (c *Counter) LoggerCtx(ctx zerolog.Context) zerolog.Context {
+	if c == nil {
+		return ctx
+	}
 	return logging.LogCtxUpdateWith(ctx.Int64(logging.MetricValueKey, int64(*c)), c.Type())
 }
 

@@ -72,7 +72,7 @@ func (r *metricsReporter) Name() string {
 
 func NewMetricsReporter(cfg *config.Config, provider monitor.Provider) ReporterService {
 	return &metricsReporter{
-		events:   make(chan metricEvent, cfg.ReporterBufferSize),
+		events:   make(chan metricEvent, cfg.ReportBuffer),
 		Provider: provider,
 		interval: cfg.ReportInterval,
 	}

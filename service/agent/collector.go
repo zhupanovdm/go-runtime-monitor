@@ -61,7 +61,11 @@ func (c *runtimeMetricsCollector) poll(ctx context.Context) error {
 	c.reporter.Publish(ctx, metric.NewGaugeMetric("StackInuse", metric.Gauge(stats.StackInuse)))
 	c.reporter.Publish(ctx, metric.NewGaugeMetric("StackSys", metric.Gauge(stats.StackSys)))
 	c.reporter.Publish(ctx, metric.NewGaugeMetric("Sys", metric.Gauge(stats.Sys)))
+
 	c.reporter.Publish(ctx, metric.NewGaugeMetric("RandomValue", metric.Gauge(rand.Float64())))
+
+	c.reporter.Publish(ctx, metric.NewGaugeMetric("Frees", metric.Gauge(stats.Frees)))
+	c.reporter.Publish(ctx, metric.NewGaugeMetric("TotalAlloc", metric.Gauge(stats.TotalAlloc)))
 
 	c.reporter.Publish(ctx, metric.NewCounterMetric("PollCount", metric.Counter(c.counter)))
 

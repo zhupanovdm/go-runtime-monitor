@@ -1,26 +1,23 @@
-package http
+package v1
 
 import (
 	"context"
 	"path"
-	"time"
 
 	"github.com/go-resty/resty/v2"
 
 	"github.com/zhupanovdm/go-runtime-monitor/model/metric"
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/httplib"
 	"github.com/zhupanovdm/go-runtime-monitor/providers/monitor"
+	"github.com/zhupanovdm/go-runtime-monitor/providers/monitor/http"
 )
+
+const clientName = "Monitor HTTP Client v.1"
 
 var _ monitor.Provider = (*httpClient)(nil)
 
 type httpClient struct {
 	*resty.Client
-}
-
-type Config struct {
-	Server  string
-	Timeout time.Duration
 }
 
 func (c httpClient) Update(ctx context.Context, mtr *metric.Metric) error {
@@ -47,4 +44,10 @@ func (c httpClient) Value(ctx context.Context, id string, typ metric.Type) (metr
 		return nil, err
 	}
 	return typ.Parse(string(resp.Body()))
+}
+
+func NewClient(cfg *monitor.Config) monitor.Provider {
+	return &httpClient{
+		Client: http.NewClient(cfg, clientName).SetHeader("Content-Type", "text/plain"),
+	}
 }
