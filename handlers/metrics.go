@@ -111,6 +111,7 @@ func (h *MetricsHandler) GetAll(resp http.ResponseWriter, req *http.Request) {
 
 	sort.Sort(metric.ByString(list))
 
+	resp.Header().Add("Content-Type", "text/html")
 	if err := view.Index.Execute(resp, list); err != nil {
 		logger.Err(err).Msg("failed to write response body")
 		httplib.Error(resp, http.StatusInternalServerError, nil)
