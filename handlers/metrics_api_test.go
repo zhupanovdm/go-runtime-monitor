@@ -232,7 +232,7 @@ func TestMetricsApiHandlerWithVSignatureVerification(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			status, result, _ := testRequest(t, ts, tt.method, tt.url, signedJsonBody(t, tt.body, tt.signWithKey))
+			status, result, _ := testRequest(t, ts, tt.method, tt.url, signedJSONBody(t, tt.body, tt.signWithKey))
 			if assert.Equal(t, tt.wantStatus, status) {
 				if len(tt.wantHash) != 0 {
 					mtr := model.Metrics{}
@@ -244,7 +244,7 @@ func TestMetricsApiHandlerWithVSignatureVerification(t *testing.T) {
 	}
 }
 
-func signedJsonBody(t *testing.T, mtr model.Metrics, key string) []byte {
+func signedJSONBody(t *testing.T, mtr model.Metrics, key string) []byte {
 	body := &mtr
 	if len(key) != 0 {
 		require.NoError(t, body.Sign(key), "sample sign unsuccessful")
