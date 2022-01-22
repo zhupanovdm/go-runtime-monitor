@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/zhupanovdm/go-runtime-monitor/config"
 	"github.com/zhupanovdm/go-runtime-monitor/model/metric"
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/task"
 	"github.com/zhupanovdm/go-runtime-monitor/service/monitor"
@@ -17,8 +18,8 @@ import (
 
 const notFoundSample = "not-found"
 
-func NewServer(svc monitor.Monitor) *httptest.Server {
-	return httptest.NewServer(NewMetricsRouter(NewMetricsHandler(svc), NewMetricsAPIHandler(svc)))
+func NewServer(cfg *config.Config, svc monitor.Monitor) *httptest.Server {
+	return httptest.NewServer(NewMetricsRouter(NewMetricsHandler(svc), NewMetricsAPIHandler(cfg, svc)))
 }
 
 var _ monitor.Monitor = (*monitorServiceStub)(nil)

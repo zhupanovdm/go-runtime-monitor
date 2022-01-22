@@ -26,6 +26,7 @@ type Config struct {
 	StoreInterval  time.Duration `env:"STORE_INTERVAL"`
 	StoreFile      string        `env:"STORE_FILE"`
 	Restore        bool          `env:"RESTORE"`
+	Key            string        `env:"KEY"`
 }
 
 func Load(cli CLIExport) (*Config, error) {

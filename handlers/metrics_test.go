@@ -5,10 +5,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/zhupanovdm/go-runtime-monitor/config"
 )
 
 func TestMetricsHandler(t *testing.T) {
-	ts := NewServer(&monitorServiceStub{})
+	ts := NewServer(&config.Config{}, &monitorServiceStub{})
 	defer ts.Close()
 
 	tests := []struct {

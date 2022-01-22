@@ -2,6 +2,7 @@ package http
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/go-resty/resty/v2"
 
@@ -11,7 +12,13 @@ import (
 
 func NewClient(cfg *monitor.Config, name string) *resty.Client {
 	client := resty.New()
-	client.SetBaseURL(fmt.Sprintf("http://%s", cfg.Address))
+
+	if strings.HasPrefix(cfg.Address, "http") {
+		client.SetBaseURL(cfg.Address)
+	} else {
+		client.SetBaseURL(fmt.Sprintf("http://%s", cfg.Address))
+	}
+
 	client.SetTimeout(cfg.Timeout)
 	client.OnBeforeRequest(func(client *resty.Client, req *resty.Request) error {
 		ctx, cid := logging.SetIfAbsentCID(req.Context(), logging.NewCID())

@@ -18,6 +18,7 @@ func cli(cfg *config.Config, flag *flag.FlagSet) {
 	flag.StringVar(&cfg.Address, "a", config.DefaultAddress, "Monitor server address")
 	flag.DurationVar(&cfg.ReportInterval, "r", config.DefaultReportInterval, "Agent reporting interval")
 	flag.DurationVar(&cfg.PollInterval, "p", config.DefaultPollInterval, "Agent polling interval")
+	flag.StringVar(&cfg.Key, "k", "", "Packet signing key")
 }
 
 func main() {

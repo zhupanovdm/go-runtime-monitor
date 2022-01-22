@@ -20,6 +20,7 @@ func cli(cfg *config.Config, flag *flag.FlagSet) {
 	flag.BoolVar(&cfg.Restore, "r", config.DefaultRestore, "Monitor will restore metrics at startup")
 	flag.DurationVar(&cfg.StoreInterval, "i", config.DefaultStoreInterval, "Monitor store interval")
 	flag.StringVar(&cfg.StoreFile, "f", config.DefaultStoreFile, "Monitor store file")
+	flag.StringVar(&cfg.Key, "k", "", "Packet signing key")
 }
 
 func main() {
@@ -41,7 +42,7 @@ func main() {
 	var wg sync.WaitGroup
 	go mon.BackgroundTask().With(task.CompletionWait(&wg))(ctx)
 
-	root := handlers.NewMetricsRouter(handlers.NewMetricsHandler(mon), handlers.NewMetricsAPIHandler(mon))
+	root := handlers.NewMetricsRouter(handlers.NewMetricsHandler(mon), handlers.NewMetricsAPIHandler(cfg, mon))
 	server := monitor.NewServer(cfg, root)
 	server.Start(ctx)
 

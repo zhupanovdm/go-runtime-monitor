@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/zhupanovdm/go-runtime-monitor/config"
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/httplib"
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/logging"
 	"github.com/zhupanovdm/go-runtime-monitor/providers/monitor/model"
@@ -17,6 +18,7 @@ const metricsHandlerAPIName = "Metrics REST API handler"
 
 type MetricsAPIHandler struct {
 	monitor monitor.Monitor
+	key     string
 }
 
 func (h *MetricsAPIHandler) Update(resp http.ResponseWriter, req *http.Request) {
@@ -37,6 +39,13 @@ func (h *MetricsAPIHandler) Update(resp http.ResponseWriter, req *http.Request) 
 		logger.Err(err).Msg("validation failed")
 		httplib.Error(resp, http.StatusBadRequest, err)
 		return
+	}
+	if len(h.key) != 0 {
+		if err := body.Verify(h.key); err != nil {
+			logger.Err(err).Msg("sign verification failed")
+			httplib.Error(resp, http.StatusBadRequest, err)
+			return
+		}
 	}
 
 	mtr := body.ToCanonical()
@@ -84,7 +93,17 @@ func (h *MetricsAPIHandler) Value(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	resp.Header().Set("Content-Type", "application/json")
-	if err = json.NewEncoder(resp).Encode(model.NewFromCanonical(mtr)); err != nil {
+
+	body = model.NewFromCanonical(mtr)
+	if len(h.key) != 0 {
+		if err := body.Sign(h.key); err != nil {
+			logger.Err(err).Msg("signing failed")
+			httplib.Error(resp, http.StatusBadRequest, err)
+			return
+		}
+	}
+
+	if err = json.NewEncoder(resp).Encode(body); err != nil {
 		logger.Err(err).Msg("failed to encode response body")
 		httplib.Error(resp, http.StatusInternalServerError, nil)
 		return
@@ -99,6 +118,9 @@ func (h *MetricsAPIHandler) decodeRequestBody(body io.Reader) (*model.Metrics, e
 	return metrics, nil
 }
 
-func NewMetricsAPIHandler(service monitor.Monitor) *MetricsAPIHandler {
-	return &MetricsAPIHandler{service}
+func NewMetricsAPIHandler(cfg *config.Config, service monitor.Monitor) *MetricsAPIHandler {
+	return &MetricsAPIHandler{
+		monitor: service,
+		key:     cfg.Key,
+	}
 }
