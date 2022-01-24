@@ -58,6 +58,10 @@ func (s *monitorServiceStub) Update(context.Context, *metric.Metric) error {
 	return nil
 }
 
+func (s *monitorServiceStub) Ping(context.Context) error {
+	return nil
+}
+
 func testRequest(t *testing.T, ts *httptest.Server, method, path string, body []byte) (int, []byte, http.Header) {
 	if body == nil {
 		body = []byte{}

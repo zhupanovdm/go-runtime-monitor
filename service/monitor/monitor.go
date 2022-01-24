@@ -117,6 +117,19 @@ func (m *monitor) GetAll(ctx context.Context) (metric.List, error) {
 	return m.readAll(logging.SetLogger(ctx, logger))
 }
 
+func (m *monitor) Ping(ctx context.Context) error {
+	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithService(m), logging.WithCID(ctx))
+	logger.Info().Msg("serving [Ping]")
+
+	if m.dump == nil {
+		logger.Warn().Msg("ping: dump storage is not set")
+		return nil
+	}
+
+	return m.dump.Ping(logging.SetLogger(ctx, logger))
+}
+
 func (m *monitor) store(ctx context.Context) error {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithService(m), logging.WithCID(ctx))

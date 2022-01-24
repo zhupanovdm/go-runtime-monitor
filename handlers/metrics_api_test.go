@@ -59,6 +59,12 @@ func TestMetricsApiHandler(t *testing.T) {
 			want:            `{"id":"foo","type":"counter","delta":0}`,
 		},
 		{
+			name:       "Ping service",
+			method:     "GET",
+			url:        "/ping",
+			wantStatus: http.StatusOK,
+		},
+		{
 			name:       "Get absent metric",
 			method:     "POST",
 			url:        "/value",

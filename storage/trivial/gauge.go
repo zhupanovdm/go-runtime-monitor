@@ -18,6 +18,10 @@ type trivialGaugeStorage struct {
 	data map[string]float64
 }
 
+func (s *trivialGaugeStorage) Init(context.Context) error {
+	return nil
+}
+
 func (s *trivialGaugeStorage) Update(ctx context.Context, id string, gauge metric.Gauge) error {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(trivialGaugeStorageName), logging.WithCID(ctx))
@@ -78,6 +82,12 @@ func (s *trivialGaugeStorage) GetAll(ctx context.Context) (list metric.List, _ e
 	logger.Trace().Msgf("gauge: %d records read", len(list))
 	return
 }
+
+func (s *trivialGaugeStorage) Ping(context.Context) error {
+	return nil
+}
+
+func (s *trivialGaugeStorage) Close(context.Context) {}
 
 func NewGaugeStorage() storage.GaugeStorage {
 	return &trivialGaugeStorage{

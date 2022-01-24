@@ -11,7 +11,9 @@ import (
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/logging"
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/task"
 	"github.com/zhupanovdm/go-runtime-monitor/service/monitor"
+	"github.com/zhupanovdm/go-runtime-monitor/storage"
 	"github.com/zhupanovdm/go-runtime-monitor/storage/file"
+	"github.com/zhupanovdm/go-runtime-monitor/storage/sqldb"
 	"github.com/zhupanovdm/go-runtime-monitor/storage/trivial"
 )
 
@@ -21,6 +23,7 @@ func cli(cfg *config.Config, flag *flag.FlagSet) {
 	flag.DurationVar(&cfg.StoreInterval, "i", config.DefaultStoreInterval, "Monitor store interval")
 	flag.StringVar(&cfg.StoreFile, "f", config.DefaultStoreFile, "Monitor store file")
 	flag.StringVar(&cfg.Key, "k", "", "Packet signing key")
+	flag.StringVar(&cfg.Database, "d", "", "Database connection string")
 }
 
 func main() {
@@ -34,7 +37,15 @@ func main() {
 		return
 	}
 
-	mon := monitor.NewMonitor(cfg, file.NewStorage(cfg), trivial.NewGaugeStorage(), trivial.NewCounterStorage())
+	dumper := storage.New(cfg, sqldb.New(sqldb.PGX{}), file.New)
+	if dumper != nil {
+		if err := dumper.Init(ctx); err != nil {
+			logger.Err(err).Msg("failed to init storage")
+			return
+		}
+	}
+
+	mon := monitor.NewMonitor(cfg, dumper, trivial.NewGaugeStorage(), trivial.NewCounterStorage())
 	if err := mon.Restore(ctx); err != nil {
 		logger.Err(err).Msg("failed to restore metrics")
 	}
@@ -47,7 +58,10 @@ func main() {
 	server.Start(ctx)
 
 	logger.Info().Msgf("%v signal received", <-app.TerminationSignal())
+
 	server.Stop(ctx)
+	dumper.Close(ctx)
+
 	cancel()
 	wg.Wait()
 }

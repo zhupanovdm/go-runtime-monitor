@@ -17,5 +17,6 @@ func NewMetricsRouter(metricsHandler *MetricsHandler, metricsAPI *MetricsAPIHand
 		r.Post("/", metricsAPI.Value)
 		r.Get("/{type}/{id}", metricsHandler.Value)
 	})
+	router.Get("/ping", metricsAPI.Ping)
 	return router
 }

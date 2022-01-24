@@ -18,6 +18,10 @@ type trivialCounterStorage struct {
 	data map[string]int64
 }
 
+func (s *trivialCounterStorage) Init(context.Context) error {
+	return nil
+}
+
 func (s *trivialCounterStorage) Update(ctx context.Context, id string, counter metric.Counter) error {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(trivialCounterStorageName), logging.WithCID(ctx))
@@ -78,6 +82,12 @@ func (s *trivialCounterStorage) GetAll(ctx context.Context) (list metric.List, _
 	logger.Trace().Msgf("counter: %d records read", len(list))
 	return
 }
+
+func (s *trivialCounterStorage) Ping(context.Context) error {
+	return nil
+}
+
+func (s *trivialCounterStorage) Close(context.Context) {}
 
 func NewCounterStorage() storage.CounterStorage {
 	return &trivialCounterStorage{

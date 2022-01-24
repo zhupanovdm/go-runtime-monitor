@@ -2,6 +2,7 @@ package file
 
 import (
 	"context"
+	"os"
 	"sync"
 
 	"github.com/zhupanovdm/go-runtime-monitor/config"
@@ -12,14 +13,18 @@ import (
 
 const fileStorageName = "File storage"
 
-var _ storage.Storage = (*fileStorage)(nil)
+var _ storage.Storage = (*client)(nil)
 
-type fileStorage struct {
+type client struct {
 	sync.RWMutex
 	filename string
 }
 
-func (s *fileStorage) GetAll(ctx context.Context) (metric.List, error) {
+func (s *client) Init(context.Context) error {
+	return nil
+}
+
+func (s *client) GetAll(ctx context.Context) (metric.List, error) {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(fileStorageName), logging.WithCID(ctx))
 	ctx = logging.SetLogger(ctx, logger)
@@ -38,7 +43,7 @@ func (s *fileStorage) GetAll(ctx context.Context) (metric.List, error) {
 	return r.Read()
 }
 
-func (s *fileStorage) UpdateBulk(ctx context.Context, list metric.List) error {
+func (s *client) UpdateBulk(ctx context.Context, list metric.List) error {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(fileStorageName), logging.WithCID(ctx))
 	ctx = logging.SetLogger(ctx, logger)
@@ -56,10 +61,34 @@ func (s *fileStorage) UpdateBulk(ctx context.Context, list metric.List) error {
 	return w.Write(list)
 }
 
-func NewStorage(cfg *config.Config) storage.Storage {
+func (s *client) Ping(ctx context.Context) error {
+	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(fileStorageName), logging.WithCID(ctx))
+	ctx = logging.SetLogger(ctx, logger)
+
+	logger.Trace().Msg("check file availability")
+
+	s.RLock()
+	defer s.RUnlock()
+
+	file, err := os.OpenFile(s.filename, os.O_RDWR|os.O_CREATE, 0777)
+	if err != nil {
+		logger.Err(err).Msg("file store: failed to check file availability")
+		return err
+	}
+	defer func() {
+		if err := file.Close(); err != nil {
+			logger.Err(err).Msg("file store: failed to close file")
+		}
+	}()
+	return nil
+}
+
+func (s *client) Close(context.Context) {}
+
+func New(cfg *config.Config) storage.Storage {
 	if len(cfg.StoreFile) == 0 {
 		return nil
 	}
-
-	return &fileStorage{filename: cfg.StoreFile}
+	return &client{filename: cfg.StoreFile}
 }

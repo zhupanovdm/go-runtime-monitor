@@ -110,6 +110,19 @@ func (h *MetricsAPIHandler) Value(resp http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func (h *MetricsAPIHandler) Ping(resp http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+
+	ctx, _ := logging.SetIfAbsentCID(req.Context(), logging.NewCID())
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(metricsHandlerAPIName), logging.WithCID(ctx))
+	logger.Info().Msg("handling [Ping]")
+
+	if err := h.monitor.Ping(ctx); err != nil {
+		logger.Err(err).Msg("failed to check monitor storage availability")
+		httplib.Error(resp, http.StatusInternalServerError, nil) // IMHO should 503
+	}
+}
+
 func (h *MetricsAPIHandler) decodeRequestBody(body io.Reader) (*model.Metrics, error) {
 	metrics := &model.Metrics{}
 	if err := json.NewDecoder(body).Decode(&metrics); err != nil {
