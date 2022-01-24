@@ -21,7 +21,7 @@ func (P PGX) init(ctx context.Context, db *sql.DB) (err error) {
 			`metric_id varchar(255) NOT NULL,`+
 			`metric_type varchar(255) NOT NULL,`+
 			`value double precision,`+
-			`delta integer`+
+			`delta int8`+
 			`);`)
 	return
 }
