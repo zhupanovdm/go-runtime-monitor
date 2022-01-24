@@ -64,7 +64,6 @@ func (s *client) UpdateBulk(ctx context.Context, list metric.List) error {
 func (s *client) Ping(ctx context.Context) error {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(fileStorageName), logging.WithCID(ctx))
-	ctx = logging.SetLogger(ctx, logger)
 
 	logger.Trace().Msg("check file availability")
 
