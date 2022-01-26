@@ -85,6 +85,7 @@ func (h *MetricsAPIHandler) Value(resp http.ResponseWriter, req *http.Request) {
 	if mtr, err = h.monitor.Get(ctx, mtr.ID, mtr.Type()); err != nil {
 		logger.Err(err).Msg("metric read failed")
 		httplib.Error(resp, http.StatusInternalServerError, nil)
+		return
 	}
 	if mtr == nil {
 		logger.Warn().Msg("requested metric not found")

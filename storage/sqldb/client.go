@@ -131,7 +131,10 @@ func (c *client) Get(ctx context.Context, id string, typ metric.Type) (*metric.M
 		logger.Err(err).Msg("failed to retrieve metric from db")
 		return nil, err
 	}
-	return &metric.Metric{ID: id, Value: v}, nil
+	if v != nil {
+		return &metric.Metric{ID: id, Value: v}, nil
+	}
+	return nil, nil
 }
 
 func (c *client) Update(ctx context.Context, id string, value metric.Value) error {
