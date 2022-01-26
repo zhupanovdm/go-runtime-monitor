@@ -12,6 +12,10 @@ var _ storage.Storage = (*client)(nil)
 
 type client struct{}
 
+func (c *client) Clear(context.Context) error {
+	return nil
+}
+
 func (c *client) IsPersistent() bool {
 	return false
 }

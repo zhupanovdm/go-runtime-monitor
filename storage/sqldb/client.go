@@ -26,6 +26,23 @@ type client struct {
 	Driver
 }
 
+func (c *client) Clear(ctx context.Context) error {
+	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(dbStorageName), logging.WithCID(ctx))
+	logger.Trace().Msg("retrieving metrics from db storage")
+
+	ctx, cancel := context.WithTimeout(ctx, c.timeout)
+	defer cancel()
+
+	c.RLock()
+	defer c.RUnlock()
+	if _, err := c.db.ExecContext(ctx, "DELETE FROM metrics"); err != nil {
+		logger.Err(err).Msg("failed to clear metrics")
+		return err
+	}
+	return nil
+}
+
 func (c *client) IsPersistent() bool {
 	return true
 }

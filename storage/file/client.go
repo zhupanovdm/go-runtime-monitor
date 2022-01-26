@@ -3,6 +3,7 @@ package file
 import (
 	"context"
 	"errors"
+	"io/fs"
 	"os"
 	"sync"
 
@@ -21,25 +22,37 @@ type client struct {
 	filename string
 }
 
-func (s *client) IsPersistent() bool {
+func (c *client) IsPersistent() bool {
 	return true
 }
 
-func (s *client) Init(context.Context) error {
+func (c *client) Init(context.Context) error {
 	return nil
 }
 
-func (s *client) GetAll(ctx context.Context) (metric.List, error) {
+func (c *client) Clear(ctx context.Context) error {
+	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(fileStorageName), logging.WithCID(ctx))
+	ctx = logging.SetLogger(ctx, logger)
+
+	if err := os.Remove(c.filename); err != nil && err != fs.ErrNotExist {
+		logger.Err(err).Msg("failed to clear destination")
+		return err
+	}
+	return nil
+}
+
+func (c *client) GetAll(ctx context.Context) (metric.List, error) {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(fileStorageName), logging.WithCID(ctx))
 	ctx = logging.SetLogger(ctx, logger)
 
 	logger.Trace().Msg("retrieving metrics from file storage")
 
-	s.RLock()
-	defer s.RUnlock()
+	c.RLock()
+	defer c.RUnlock()
 
-	r, err := NewJSONFileReader(ctx, s.filename)
+	r, err := NewJSONFileReader(ctx, c.filename)
 	if err != nil {
 		logger.Err(err).Msg("file store: failed to open storage for reading")
 		return nil, err
@@ -48,17 +61,17 @@ func (s *client) GetAll(ctx context.Context) (metric.List, error) {
 	return r.Read()
 }
 
-func (s *client) UpdateBulk(ctx context.Context, list metric.List) error {
+func (c *client) UpdateBulk(ctx context.Context, list metric.List) error {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(fileStorageName), logging.WithCID(ctx))
 	ctx = logging.SetLogger(ctx, logger)
 
 	logger.Trace().Msg("persisting metrics to file storage")
 
-	s.Lock()
-	defer s.Unlock()
+	c.Lock()
+	defer c.Unlock()
 
-	w, err := NewJSONFileWriter(ctx, s.filename)
+	w, err := NewJSONFileWriter(ctx, c.filename)
 	if err != nil {
 		return err
 	}
@@ -66,7 +79,7 @@ func (s *client) UpdateBulk(ctx context.Context, list metric.List) error {
 	return w.Write(list)
 }
 
-func (s *client) Get(ctx context.Context, _ string, _ metric.Type) (*metric.Metric, error) {
+func (c *client) Get(ctx context.Context, _ string, _ metric.Type) (*metric.Metric, error) {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(fileStorageName), logging.WithCID(ctx))
 
@@ -74,7 +87,7 @@ func (s *client) Get(ctx context.Context, _ string, _ metric.Type) (*metric.Metr
 	return nil, errors.New("unsupported operation")
 }
 
-func (s *client) Update(ctx context.Context, _ string, _ metric.Value) error {
+func (c *client) Update(ctx context.Context, _ string, _ metric.Value) error {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(fileStorageName), logging.WithCID(ctx))
 
@@ -82,16 +95,16 @@ func (s *client) Update(ctx context.Context, _ string, _ metric.Value) error {
 	return errors.New("unsupported operation")
 }
 
-func (s *client) Ping(ctx context.Context) error {
+func (c *client) Ping(ctx context.Context) error {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(fileStorageName), logging.WithCID(ctx))
 
 	logger.Trace().Msg("check file availability")
 
-	s.RLock()
-	defer s.RUnlock()
+	c.RLock()
+	defer c.RUnlock()
 
-	file, err := os.OpenFile(s.filename, os.O_RDWR|os.O_CREATE, 0777)
+	file, err := os.OpenFile(c.filename, os.O_RDWR|os.O_CREATE, 0777)
 	if err != nil {
 		logger.Err(err).Msg("file store: failed to check file availability")
 		return err
@@ -104,7 +117,7 @@ func (s *client) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (s *client) Close(context.Context) {}
+func (c *client) Close(context.Context) {}
 
 func New(cfg *config.Config) storage.Storage {
 	if len(cfg.StoreFile) == 0 {

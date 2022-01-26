@@ -30,4 +30,6 @@ type Storage interface {
 
 	Update(ctx context.Context, id string, value metric.Value) error
 	UpdateBulk(ctx context.Context, list metric.List) error
+
+	Clear(ctx context.Context) error
 }

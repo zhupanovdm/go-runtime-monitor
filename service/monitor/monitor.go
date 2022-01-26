@@ -29,10 +29,6 @@ func (m *monitor) Restore(ctx context.Context) error {
 		logger.Warn().Msg("restore: feature is disabled")
 		return nil
 	}
-	if m.metricStorage.IsPersistent() {
-		logger.Warn().Msg("restore: current store is persistent: data restore omitted")
-		return nil
-	}
 	if m.dumpStorage == nil {
 		logger.Warn().Msg("restore: dump storage is not set")
 		return nil
@@ -41,6 +37,12 @@ func (m *monitor) Restore(ctx context.Context) error {
 	if err != nil {
 		logger.Err(err).Msg("restore: failed to read from dump")
 		return err
+	}
+	if m.metricStorage.IsPersistent() {
+		if err := m.metricStorage.Clear(ctx); err != nil {
+			logger.Err(err).Msg("restore: failed to clear metrics storage")
+			return err
+		}
 	}
 	if err := m.metricStorage.UpdateBulk(ctx, metrics); err != nil {
 		logger.Err(err).Msg("restore: update storage failed")
@@ -60,7 +62,7 @@ func (m *monitor) Update(ctx context.Context, mtr *metric.Metric) error {
 		logger.Err(err).Msg("update: failed to update storage")
 		return err
 	}
-	if !m.metricStorage.IsPersistent() && m.isSyncDump() {
+	if m.isSyncDump() {
 		if err := m.Dump(ctx); err != nil {
 			logger.Err(err).Msg("update: failed to sync dump")
 			return err
@@ -118,7 +120,7 @@ func (m *monitor) Dump(ctx context.Context) error {
 }
 
 func (m *monitor) BackgroundTask() task.Task {
-	if m.metricStorage.IsPersistent() || m.isSyncDump() {
+	if m.isSyncDump() {
 		return task.VoidTask
 	}
 	return task.Task(func(ctx context.Context) { _ = m.Dump(ctx) }).With(task.PeriodicRun(m.interval))

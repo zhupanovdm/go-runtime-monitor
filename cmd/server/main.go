@@ -14,7 +14,6 @@ import (
 	"github.com/zhupanovdm/go-runtime-monitor/storage"
 	"github.com/zhupanovdm/go-runtime-monitor/storage/file"
 	"github.com/zhupanovdm/go-runtime-monitor/storage/sqldb"
-	"github.com/zhupanovdm/go-runtime-monitor/storage/stub"
 	"github.com/zhupanovdm/go-runtime-monitor/storage/trivial"
 )
 
@@ -38,7 +37,7 @@ func main() {
 		return
 	}
 
-	dumper := storage.New(cfg, file.New, stub.New)
+	dumper := file.New(cfg)
 	if dumper != nil {
 		if err := dumper.Init(ctx); err != nil {
 			logger.Err(err).Msg("failed to init dump storage")
