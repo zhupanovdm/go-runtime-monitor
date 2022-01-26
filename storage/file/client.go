@@ -2,6 +2,7 @@ package file
 
 import (
 	"context"
+	"errors"
 	"os"
 	"sync"
 
@@ -18,6 +19,10 @@ var _ storage.Storage = (*client)(nil)
 type client struct {
 	sync.RWMutex
 	filename string
+}
+
+func (s *client) IsPersistent() bool {
+	return true
 }
 
 func (s *client) Init(context.Context) error {
@@ -59,6 +64,22 @@ func (s *client) UpdateBulk(ctx context.Context, list metric.List) error {
 	}
 	defer w.Close()
 	return w.Write(list)
+}
+
+func (s *client) Get(ctx context.Context, _ string, _ metric.Type) (*metric.Metric, error) {
+	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(fileStorageName), logging.WithCID(ctx))
+
+	logger.Error().Msg("getting metric from storage is unsupported")
+	return nil, errors.New("unsupported operation")
+}
+
+func (s *client) Update(ctx context.Context, _ string, _ metric.Value) error {
+	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(fileStorageName), logging.WithCID(ctx))
+
+	logger.Error().Msg("update metric in storage is unsupported")
+	return errors.New("unsupported operation")
 }
 
 func (s *client) Ping(ctx context.Context) error {

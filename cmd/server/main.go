@@ -14,6 +14,7 @@ import (
 	"github.com/zhupanovdm/go-runtime-monitor/storage"
 	"github.com/zhupanovdm/go-runtime-monitor/storage/file"
 	"github.com/zhupanovdm/go-runtime-monitor/storage/sqldb"
+	"github.com/zhupanovdm/go-runtime-monitor/storage/stub"
 	"github.com/zhupanovdm/go-runtime-monitor/storage/trivial"
 )
 
@@ -37,15 +38,23 @@ func main() {
 		return
 	}
 
-	dumper := storage.New(cfg, sqldb.New(sqldb.PGX{}), file.New)
+	dumper := storage.New(cfg, file.New, stub.New)
 	if dumper != nil {
 		if err := dumper.Init(ctx); err != nil {
-			logger.Err(err).Msg("failed to init storage")
+			logger.Err(err).Msg("failed to init dump storage")
 			return
 		}
 	}
 
-	mon := monitor.NewMonitor(cfg, dumper, trivial.NewGaugeStorage(), trivial.NewCounterStorage())
+	st := storage.New(cfg, sqldb.New(sqldb.PGX{}), trivial.New)
+	if st != nil {
+		if err := st.Init(ctx); err != nil {
+			logger.Err(err).Msg("failed to init metrics storage")
+			return
+		}
+	}
+
+	mon := monitor.NewMonitor(cfg, dumper, st)
 	if err := mon.Restore(ctx); err != nil {
 		logger.Err(err).Msg("failed to restore metrics")
 	}

@@ -31,21 +31,3 @@ func (m Metrics) ToCanonical() *metric.Metric {
 	}
 	return nil
 }
-
-func FromCanonical(mtr *metric.Metric) *Metrics {
-	switch mtr.Type() {
-	case metric.GaugeType:
-		return &Metrics{
-			ID:    mtr.ID,
-			typ:   string(mtr.Type()),
-			value: float64(*mtr.Value.(*metric.Gauge)),
-		}
-	case metric.CounterType:
-		return &Metrics{
-			ID:    mtr.ID,
-			typ:   string(mtr.Type()),
-			delta: int64(*mtr.Value.(*metric.Counter)),
-		}
-	}
-	return nil
-}
