@@ -112,7 +112,7 @@ func Test_trivialCounterStorage_Update(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := s.Update(context.TODO(), tt.metric.ID, tt.metric)
+			err := s.Update(context.TODO(), tt.metric)
 			if assert.NoError(t, err) {
 				m, _ := s.Get(context.TODO(), tt.metric.ID, tt.metric.Type())
 				assert.Equal(t, tt.want, m)
@@ -223,7 +223,7 @@ func Test_trivialGaugeStorage_Update(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := s.Update(context.TODO(), tt.metric.ID, tt.metric)
+			err := s.Update(context.TODO(), tt.metric)
 			if assert.NoError(t, err) {
 				m, _ := s.Get(context.TODO(), tt.metric.ID, tt.metric.Type())
 				assert.Equal(t, tt.want, m)

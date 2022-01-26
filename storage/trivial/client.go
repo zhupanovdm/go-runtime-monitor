@@ -21,11 +21,16 @@ type client struct {
 	counters map[string]metric.Counter
 }
 
-func (c *client) Clear(context.Context) error {
+func (c *client) Clear(ctx context.Context) error {
+	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(trivialStorageName), logging.WithCID(ctx))
+
 	c.Lock()
 	defer c.Unlock()
 	c.gauges = make(map[string]metric.Gauge)
 	c.counters = make(map[string]metric.Counter)
+
+	logger.Info().Msg("cleared")
 	return nil
 }
 
@@ -33,26 +38,19 @@ func (c *client) IsPersistent() bool {
 	return false
 }
 
-func (c *client) Init(context.Context) error {
+func (c *client) Init(ctx context.Context) error {
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(trivialStorageName))
+	logger.Info().Msg("initialized")
 	return nil
 }
 
-func (c *client) Update(ctx context.Context, id string, value metric.Value) error {
+func (c *client) Update(ctx context.Context, mtr *metric.Metric) error {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(trivialStorageName), logging.WithCID(ctx))
 
-	if err := value.Type().Validate(); err != nil {
-		err := fmt.Errorf("unknown metric type: %v", value.Type())
-		logger.Err(err).Msg("update failed")
-		return err
-	}
-
 	c.Lock()
 	defer c.Unlock()
-	c.save(id, value)
-
-	logger.Trace().Msgf("metric [%s]: updated with [%v]", id, value)
-	return nil
+	return c.update(logging.SetLogger(ctx, logger), mtr)
 }
 
 func (c *client) UpdateBulk(ctx context.Context, list metric.List) error {
@@ -62,14 +60,10 @@ func (c *client) UpdateBulk(ctx context.Context, list metric.List) error {
 	c.Lock()
 	defer c.Unlock()
 	for _, mtr := range list {
-		if err := mtr.Type().Validate(); err != nil {
-			err := fmt.Errorf("unknown metric type: %v", mtr.Type())
-			logger.Err(err).Msg("update failed")
+		if err := c.update(logging.SetLogger(ctx, logger), mtr); err != nil {
 			return err
 		}
-		c.save(mtr.ID, mtr.Value)
 	}
-
 	logger.Trace().Msgf("%d records updated", len(list))
 	return nil
 }
@@ -77,24 +71,33 @@ func (c *client) UpdateBulk(ctx context.Context, list metric.List) error {
 func (c *client) Get(ctx context.Context, id string, typ metric.Type) (*metric.Metric, error) {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(trivialStorageName), logging.WithCID(ctx))
+	logger.UpdateContext(logging.LogCtxKeyStr(logging.MetricIDKey, id))
+	logger.UpdateContext(logging.LogCtxFrom(typ))
 
 	c.RLock()
 	defer c.RUnlock()
-
 	switch typ {
 	case metric.GaugeType:
 		if value, ok := c.gauges[id]; ok {
-			logger.Trace().Msgf("gauge [%s]: restored [%f]", id, value)
-			return metric.NewGaugeMetric(id, value), nil
+			mtr := metric.NewGaugeMetric(id, value)
+			logger.UpdateContext(logging.LogCtxFrom(mtr))
+			logger.Trace().Msg("read")
+			return mtr, nil
 		}
 	case metric.CounterType:
-		if value, ok := c.counters[id]; ok {
-			logger.Trace().Msgf("counter [%s]: restored [%d]", id, value)
-			return metric.NewCounterMetric(id, value), nil
+		if delta, ok := c.counters[id]; ok {
+			mtr := metric.NewCounterMetric(id, delta)
+			logger.UpdateContext(logging.LogCtxFrom(mtr))
+			logger.Trace().Msg("read")
+			return mtr, nil
 		}
+	default:
+		err := fmt.Errorf("unknown metric %v", typ)
+		logger.Err(err).Msg("read failed")
+		return nil, err
 	}
 
-	logger.Trace().Msgf("counter [%s]: not found", id)
+	logger.Trace().Msg("not found")
 	return nil, nil
 }
 
@@ -113,26 +116,45 @@ func (c *client) GetAll(ctx context.Context) (list metric.List, _ error) {
 		list = append(list, metric.NewCounterMetric(k, v))
 	}
 
-	logger.Trace().Msgf("counter: %d records read", len(list))
+	logger.Trace().Msgf("%d records read", len(list))
 	return
 }
 
-func (c *client) Ping(context.Context) error {
+func (c *client) Ping(ctx context.Context) error {
+	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(trivialStorageName), logging.WithCID(ctx))
+	logger.Trace().Msg("storage is online")
 	return nil
 }
 
-func (c *client) Close(context.Context) {}
+func (c *client) Close(ctx context.Context) {
+	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(trivialStorageName), logging.WithCID(ctx))
+	logger.Info().Msg("closed")
+}
 
-func (c *client) save(id string, value metric.Value) {
-	if m, ok := value.(*metric.Metric); ok {
-		value = m.Value
+func (c *client) update(ctx context.Context, mtr *metric.Metric) error {
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(trivialStorageName), logging.WithCID(ctx))
+	logger.UpdateContext(logging.LogCtxFrom(mtr))
+
+	if err := mtr.Type().Validate(); err != nil {
+		logger.Err(err).Msg("update failed")
+		return err
 	}
-	switch value.Type() {
+
+	switch mtr.Type() {
 	case metric.GaugeType:
-		c.gauges[id] = *value.(*metric.Gauge)
+		c.gauges[mtr.ID] = *mtr.Value.(*metric.Gauge)
 	case metric.CounterType:
-		c.counters[id] += *value.(*metric.Counter)
+		c.counters[mtr.ID] += *mtr.Value.(*metric.Counter)
+	default:
+		err := fmt.Errorf("unknown metric %v", mtr.Type())
+		logger.Err(err).Msg("update failed")
+		return err
 	}
+
+	logger.Trace().Msg("updated")
+	return nil
 }
 
 func New(*config.Config) storage.Storage {

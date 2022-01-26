@@ -26,7 +26,9 @@ func (c *client) IsPersistent() bool {
 	return true
 }
 
-func (c *client) Init(context.Context) error {
+func (c *client) Init(ctx context.Context) error {
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(fileStorageName))
+	logger.Info().Msg("initialized")
 	return nil
 }
 
@@ -35,62 +37,68 @@ func (c *client) Clear(ctx context.Context) error {
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(fileStorageName), logging.WithCID(ctx))
 
 	if err := os.Remove(c.filename); err != nil && err != fs.ErrNotExist {
-		logger.Err(err).Msg("failed to clear destination")
+		logger.Err(err).Msg("unable to remove destination file")
 		return err
 	}
+	logger.Info().Msg("cleared")
 	return nil
 }
 
 func (c *client) GetAll(ctx context.Context) (metric.List, error) {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(fileStorageName), logging.WithCID(ctx))
-	ctx = logging.SetLogger(ctx, logger)
-
-	logger.Trace().Msg("retrieving metrics from file storage")
 
 	c.RLock()
 	defer c.RUnlock()
-
-	r, err := NewJSONFileReader(ctx, c.filename)
+	r, err := NewJSONFileReader(logging.SetLogger(ctx, logger), c.filename)
 	if err != nil {
-		logger.Err(err).Msg("file store: failed to open storage for reading")
+		logger.Err(err).Msg("failed to create reader")
 		return nil, err
 	}
 	defer r.Close()
-	return r.Read()
+
+	list, err := r.Read()
+	if err != nil {
+		logger.Err(err).Msg("failed to read entire file")
+		return nil, err
+	}
+	return list, err
 }
 
 func (c *client) UpdateBulk(ctx context.Context, list metric.List) error {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(fileStorageName), logging.WithCID(ctx))
-	ctx = logging.SetLogger(ctx, logger)
-
-	logger.Trace().Msg("persisting metrics to file storage")
 
 	c.Lock()
 	defer c.Unlock()
-
-	w, err := NewJSONFileWriter(ctx, c.filename)
+	w, err := NewJSONFileWriter(logging.SetLogger(ctx, logger), c.filename)
 	if err != nil {
+		logger.Err(err).Msg("failed to create writer")
 		return err
 	}
 	defer w.Close()
-	return w.Write(list)
+
+	if err := w.Write(list); err != nil {
+		logger.Err(err).Msg("metrics update failed")
+		return err
+	}
+	logger.Trace().Msgf("%d records updated", len(list))
+	return nil
 }
 
 func (c *client) Get(ctx context.Context, _ string, _ metric.Type) (*metric.Metric, error) {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(fileStorageName), logging.WithCID(ctx))
 
-	logger.Error().Msg("getting metric from storage is unsupported")
+	logger.Error().Msg("get metric operation is unsupported")
 	return nil, errors.New("unsupported operation")
 }
 
-func (c *client) Update(ctx context.Context, _ string, _ metric.Value) error {
+func (c *client) Update(ctx context.Context, _ *metric.Metric) error {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(fileStorageName), logging.WithCID(ctx))
 
-	logger.Error().Msg("update metric in storage is unsupported")
+	logger.Error().Msg("update metric operation is unsupported")
 	return errors.New("unsupported operation")
 }
 
@@ -98,25 +106,27 @@ func (c *client) Ping(ctx context.Context) error {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(fileStorageName), logging.WithCID(ctx))
 
-	logger.Trace().Msg("check file availability")
-
 	c.RLock()
 	defer c.RUnlock()
-
 	file, err := os.OpenFile(c.filename, os.O_RDWR|os.O_CREATE, 0777)
 	if err != nil {
-		logger.Err(err).Msg("file store: failed to check file availability")
+		logger.Err(err).Msg("failed to check destination file availability")
 		return err
 	}
 	defer func() {
 		if err := file.Close(); err != nil {
-			logger.Err(err).Msg("file store: failed to close file")
+			logger.Err(err).Msg("failed to close destination file")
 		}
 	}()
+
+	logger.Trace().Msg("storage is online")
 	return nil
 }
 
-func (c *client) Close(context.Context) {}
+func (c *client) Close(ctx context.Context) {
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(fileStorageName))
+	logger.Info().Msg("closed")
+}
 
 func New(cfg *config.Config) storage.Storage {
 	if len(cfg.StoreFile) == 0 {

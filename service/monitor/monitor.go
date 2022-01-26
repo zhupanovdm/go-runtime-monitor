@@ -58,7 +58,7 @@ func (m *monitor) Update(ctx context.Context, mtr *metric.Metric) error {
 	logger.Info().Msg("serving [Update]")
 
 	ctx = logging.SetLogger(ctx, logger)
-	if err := m.metricStorage.Update(ctx, mtr.ID, mtr); err != nil {
+	if err := m.metricStorage.Update(ctx, mtr); err != nil {
 		logger.Err(err).Msg("update: failed to update storage")
 		return err
 	}
@@ -101,20 +101,20 @@ func (m *monitor) Dump(ctx context.Context) error {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithService(m), logging.WithCID(ctx))
 	ctx = logging.SetLogger(ctx, logger)
-	logger.Info().Msg("serving [store]")
+	logger.Info().Msg("serving [Dump]")
 
 	if m.dumpStorage == nil {
-		logger.Warn().Msg("store: dump storage is not set")
+		logger.Warn().Msg("dump: storage is not set")
 		return nil
 	}
 
 	metrics, err := m.metricStorage.GetAll(ctx)
 	if err != nil {
-		logger.Err(err).Msg("store: failed to read metrics")
+		logger.Err(err).Msg("dump: failed to read metrics")
 		return err
 	}
 	if err = m.dumpStorage.UpdateBulk(ctx, metrics); err != nil {
-		logger.Err(err).Msg("store: dump update failed")
+		logger.Err(err).Msg("dump: dump failed")
 	}
 	return nil
 }

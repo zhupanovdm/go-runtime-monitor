@@ -28,7 +28,7 @@ type Storage interface {
 	Get(ctx context.Context, id string, typ metric.Type) (*metric.Metric, error)
 	GetAll(ctx context.Context) (metric.List, error)
 
-	Update(ctx context.Context, id string, value metric.Value) error
+	Update(ctx context.Context, mtr *metric.Metric) error
 	UpdateBulk(ctx context.Context, list metric.List) error
 
 	Clear(ctx context.Context) error

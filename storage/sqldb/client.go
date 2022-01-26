@@ -13,7 +13,7 @@ import (
 	"github.com/zhupanovdm/go-runtime-monitor/storage"
 )
 
-const dbStorageName = "DB storage"
+const dbStorageName = "SQL DB storage"
 const defaultTimeout = 5 * time.Second
 
 var _ storage.Storage = (*client)(nil)
@@ -29,7 +29,6 @@ type client struct {
 func (c *client) Clear(ctx context.Context) error {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(dbStorageName), logging.WithCID(ctx))
-	logger.Trace().Msg("retrieving metrics from db storage")
 
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
@@ -37,9 +36,10 @@ func (c *client) Clear(ctx context.Context) error {
 	c.RLock()
 	defer c.RUnlock()
 	if _, err := c.db.ExecContext(ctx, "DELETE FROM metrics"); err != nil {
-		logger.Err(err).Msg("failed to clear metrics")
+		logger.Err(err).Msg("failed to clear metrics table")
 		return err
 	}
+	logger.Info().Msg("cleared")
 	return nil
 }
 
@@ -47,36 +47,34 @@ func (c *client) IsPersistent() bool {
 	return true
 }
 
-func (c *client) Init(ctx context.Context) (err error) {
-	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
-	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(dbStorageName), logging.WithCID(ctx))
-
-	logger.Trace().Msg("init db storage")
+func (c *client) Init(ctx context.Context) error {
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(dbStorageName))
 
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 
-	var db *sql.DB
-	if db, err = c.open(c.dataSource); err != nil {
+	db, err := c.open(c.dataSource)
+	if err != nil {
 		logger.Err(err).Msg("failed to open db")
-		return
+		return err
 	}
 
 	// init script may be sensitive to sql dialect and depends on db server
 	c.Lock()
 	defer c.Unlock()
-	if err = c.init(ctx, db); err != nil {
-		logger.Err(err).Msg("failed to init db")
-		return
+	if err := c.prepare(ctx, db); err != nil {
+		logger.Err(err).Msg("failed to prepare db")
+		return err
 	}
 	c.db = db
-	return
+
+	logger.Info().Msg("initialized")
+	return nil
 }
 
 func (c *client) GetAll(ctx context.Context) (metric.List, error) {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(dbStorageName), logging.WithCID(ctx))
-	logger.Trace().Msg("retrieving metrics from db storage")
 
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
@@ -97,38 +95,35 @@ func (c *client) GetAll(ctx context.Context) (metric.List, error) {
 	list := make(metric.List, 0)
 	for rows.Next() {
 		m := &Metrics{}
-		if err := m.Scan(rows); err != nil {
-			logger.Err(err).Msg("failed to read row from query result")
+		if err := rows.Scan(&m.ID, &m.typ, &m.value, &m.delta); err != nil {
+			logger.Err(err).Msg("failed to read query result row")
 			return nil, err
 		}
 		mtr := m.ToCanonical()
 		if mtr == nil {
-			logger.Err(err).Msg("failed to read row from query result")
+			logger.Err(err).Msg("unable to convert row to canonical metric")
 			return nil, err
 		}
 		list = append(list, mtr)
 	}
 	if err := rows.Err(); err != nil {
-		logger.Err(err).Msg("malformed query result")
+		logger.Err(err).Msg("malformed query result reading detected")
 		return nil, err
 	}
+
+	logger.Trace().Msgf("%d records read", len(list))
 	return list, nil
 }
 
 func (c *client) UpdateBulk(ctx context.Context, list metric.List) error {
-	// naive implementation
-
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(dbStorageName), logging.WithCID(ctx))
-	logger.Trace().Msg("persisting metrics to db storage")
 
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
-
+	// naive implementation
 	c.Lock()
 	defer c.Unlock()
 	for _, mtr := range list {
-		if err := c.save(ctx, mtr.ID, mtr.Value); err != nil {
+		if err := c.process(logging.SetLogger(ctx, logger), mtr); err != nil {
 			return err
 		}
 	}
@@ -139,30 +134,19 @@ func (c *client) UpdateBulk(ctx context.Context, list metric.List) error {
 func (c *client) Get(ctx context.Context, id string, typ metric.Type) (*metric.Metric, error) {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(dbStorageName), logging.WithCID(ctx))
-	logger.Trace().Msg("getting metric from db storage")
 
 	c.RLock()
 	defer c.RUnlock()
-	v, err := c.read(ctx, id, typ)
-	if err != nil {
-		logger.Err(err).Msg("failed to retrieve metric from db")
-		return nil, err
-	}
-	if v != nil {
-		return &metric.Metric{ID: id, Value: v}, nil
-	}
-	return nil, nil
+	return c.read(logging.SetLogger(ctx, logger), id, typ)
 }
 
-func (c *client) Update(ctx context.Context, id string, value metric.Value) error {
+func (c *client) Update(ctx context.Context, mtr *metric.Metric) error {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(dbStorageName), logging.WithCID(ctx))
-	logger.Trace().Msg("updating gauge in db storage")
 
 	c.Lock()
 	defer c.Unlock()
-	if err := c.save(ctx, id, value); err != nil {
-		logger.Err(err).Msg("failed to save metric to db")
+	if err := c.process(logging.SetLogger(ctx, logger), mtr); err != nil {
 		return err
 	}
 	return nil
@@ -171,7 +155,6 @@ func (c *client) Update(ctx context.Context, id string, value metric.Value) erro
 func (c *client) Ping(ctx context.Context) error {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(dbStorageName), logging.WithCID(ctx))
-	logger.Trace().Msg("ping db server")
 
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
@@ -180,6 +163,8 @@ func (c *client) Ping(ctx context.Context) error {
 		logger.Err(err).Msg("failed to ping db server")
 		return err
 	}
+
+	logger.Trace().Msg("storage is online")
 	return nil
 }
 
@@ -190,80 +175,111 @@ func (c *client) Close(ctx context.Context) {
 	if err := c.db.Close(); err != nil {
 		logger.Err(err).Msg("failed to close db connection")
 	}
+	logger.Info().Msg("closed")
 }
 
-func (c *client) save(ctx context.Context, id string, value metric.Value) error {
-	v, err := c.read(ctx, id, value.Type())
+func (c *client) process(ctx context.Context, mtr *metric.Metric) error {
+	m, err := c.read(ctx, mtr.ID, mtr.Type())
 	if err != nil {
 		return err
 	}
-	if v == nil {
-		if err := c.create(ctx, id, value); err != nil {
-			return err
-		}
+	if m == nil {
+		return c.create(ctx, mtr)
 	}
-	return c.update(ctx, id, value)
+	return c.update(ctx, mtr)
 }
 
-func (c *client) create(ctx context.Context, id string, value metric.Value) error {
-	if err := value.Type().Validate(); err != nil {
+func (c *client) create(ctx context.Context, mtr *metric.Metric) error {
+	_, logger := logging.GetOrCreateLogger(ctx)
+	logger.UpdateContext(logging.LogCtxFrom(mtr))
+
+	if err := mtr.Type().Validate(); err != nil {
+		logger.Err(err).Msgf("create failed")
 		return err
 	}
 
-	v, d := toPrimitive(value)
-	if _, err := c.db.ExecContext(ctx, "INSERT INTO metrics (metric_id, metric_type, value, delta) VALUES ($1,$2,$3,$4)", id, string(value.Type()), v, d); err != nil {
+	ctx, cancel := context.WithTimeout(ctx, c.timeout)
+	defer cancel()
+
+	v, d := toPrimitive(mtr)
+	if _, err := c.db.ExecContext(ctx, "INSERT INTO metrics (metric_id, metric_type, value, delta) VALUES ($1,$2,$3,$4)", mtr.ID, string(mtr.Type()), v, d); err != nil {
+		logger.Err(err).Msgf("create failed")
 		return err
 	}
+
+	logger.Trace().Msg("created")
 	return nil
 }
 
-func (c *client) read(ctx context.Context, id string, typ metric.Type) (metric.Value, error) {
-	var v float64
-	var d int64
+func (c *client) read(ctx context.Context, id string, typ metric.Type) (*metric.Metric, error) {
+	_, logger := logging.GetOrCreateLogger(ctx)
+	logger.UpdateContext(logging.LogCtxKeyStr(logging.MetricIDKey, id))
+	logger.UpdateContext(logging.LogCtxFrom(typ))
 
-	if err := c.db.QueryRowContext(ctx, `SELECT value, delta FROM metrics WHERE metric_id=$1 AND metric_type=$2 LIMIT 1`, id, string(typ)).Scan(&v, &d); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
+	if err := typ.Validate(); err != nil {
+		logger.Err(err).Msgf("query failed")
 		return nil, err
 	}
+
+	ctx, cancel := context.WithTimeout(ctx, c.timeout)
+	defer cancel()
+
+	var v float64
+	var d int64
+	if err := c.db.QueryRowContext(ctx, `SELECT value, delta FROM metrics WHERE metric_id=$1 AND metric_type=$2 LIMIT 1`, id, string(typ)).Scan(&v, &d); err != nil {
+		if err == sql.ErrNoRows {
+			logger.Trace().Msg("not found")
+			return nil, nil
+		}
+		logger.Err(err).Msgf("query failed")
+		return nil, err
+	}
+
+	var mtr *metric.Metric
 	switch typ {
 	case metric.GaugeType:
-		return metric.Value((*metric.Gauge)(&v)), nil
+		mtr = metric.NewGaugeMetric(id, metric.Gauge(v))
 	case metric.CounterType:
-		return metric.Value((*metric.Counter)(&d)), nil
+		mtr = metric.NewCounterMetric(id, metric.Counter(d))
+	default:
+		err := fmt.Errorf("unknown metric %v", typ)
+		logger.Err(err).Msgf("query failed")
+		return nil, err
 	}
-	return nil, fmt.Errorf("unknown metric type %v", typ)
+
+	logger.UpdateContext(logging.LogCtxFrom(mtr))
+	logger.Trace().Msg("got record")
+	return mtr, nil
 }
 
-func (c *client) update(ctx context.Context, id string, value metric.Value) error {
-	if err := value.Type().Validate(); err != nil {
-		return err
-	}
-	v, d := toPrimitive(value)
-	switch value.Type() {
-	case metric.GaugeType:
-		if _, err := c.db.ExecContext(ctx, "UPDATE metrics SET value = $1 WHERE metric_id = $2 AND metric_type=$3", v, id, string(value.Type())); err != nil {
-			return err
-		}
-	case metric.CounterType:
-		if _, err := c.db.ExecContext(ctx, "UPDATE metrics SET delta = delta + $1 WHERE metric_id = $2 AND metric_type=$3", d, id, string(value.Type())); err != nil {
-			return err
-		}
-	}
-	return nil
-}
+func (c *client) update(ctx context.Context, mtr *metric.Metric) (err error) {
+	_, logger := logging.GetOrCreateLogger(ctx)
+	logger.UpdateContext(logging.LogCtxFrom(mtr))
 
-func toPrimitive(value metric.Value) (v float64, d int64) {
-	if m, ok := value.(*metric.Metric); ok {
-		value = m.Value
+	if err = mtr.Type().Validate(); err != nil {
+		logger.Err(err).Msgf("update failed")
+		return
 	}
-	switch value.Type() {
+
+	ctx, cancel := context.WithTimeout(ctx, c.timeout)
+	defer cancel()
+
+	v, d := toPrimitive(mtr)
+	switch mtr.Type() {
 	case metric.GaugeType:
-		v = float64(*value.(*metric.Gauge))
+		_, err = c.db.ExecContext(ctx,
+			"UPDATE metrics SET value = $1 WHERE metric_id = $2 AND metric_type=$3", v, mtr.ID, string(mtr.Type()))
 	case metric.CounterType:
-		d = int64(*value.(*metric.Counter))
+		_, err = c.db.ExecContext(ctx,
+			"UPDATE metrics SET delta = delta + $1 WHERE metric_id = $2 AND metric_type=$3", d, mtr.ID, string(mtr.Type()))
+	default:
+		err = fmt.Errorf("unknown metric %v", mtr.Type())
 	}
+	if err != nil {
+		logger.Err(err).Msg("update failed")
+		return
+	}
+	logger.Trace().Msg("updated")
 	return
 }
 
@@ -282,5 +298,5 @@ func New(driver Driver) storage.Factory {
 
 type Driver interface {
 	open(dataSource string) (*sql.DB, error)
-	init(ctx context.Context, db *sql.DB) error
+	prepare(ctx context.Context, db *sql.DB) error
 }
