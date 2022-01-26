@@ -33,7 +33,6 @@ func (c *client) Init(context.Context) error {
 func (c *client) Clear(ctx context.Context) error {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(fileStorageName), logging.WithCID(ctx))
-	ctx = logging.SetLogger(ctx, logger)
 
 	if err := os.Remove(c.filename); err != nil && err != fs.ErrNotExist {
 		logger.Err(err).Msg("failed to clear destination")
