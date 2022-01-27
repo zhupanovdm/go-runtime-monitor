@@ -27,6 +27,20 @@ func TestMetricsApiHandler(t *testing.T) {
 		want            string
 	}{
 		{
+			name:       "Batch update",
+			method:     "POST",
+			url:        "/updates",
+			body:       `[]`,
+			wantStatus: http.StatusOK,
+		},
+		{
+			name:       "Batch update 2",
+			method:     "POST",
+			url:        "/updates",
+			body:       `[]`,
+			wantStatus: http.StatusOK,
+		},
+		{
 			name:       "Update gauge",
 			method:     "POST",
 			url:        "/update",

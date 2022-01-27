@@ -13,7 +13,9 @@ func NewMetricsRouter(metricsHandler *MetricsHandler, metricsAPI *MetricsAPIHand
 		r.Post("/", metricsAPI.Update)
 		r.Post("/{type}/{id}/{value}", metricsHandler.Update)
 	})
-	router.Post("/updates", metricsAPI.UpdateBulk)
+	router.Route("/updates", func(r chi.Router) {
+		r.Post("/", metricsAPI.UpdateBulk)
+	})
 	router.Route("/value", func(r chi.Router) {
 		r.Post("/", metricsAPI.Value)
 		r.Get("/{type}/{id}", metricsHandler.Value)
