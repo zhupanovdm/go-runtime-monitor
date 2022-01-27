@@ -41,6 +41,27 @@ func (c httpClient) Update(ctx context.Context, mtr *metric.Metric) error {
 	return nil
 }
 
+func (c httpClient) UpdateBulk(ctx context.Context, list metric.List) error {
+	body := make([]*model.Metrics, 0, len(list))
+	for _, mtr := range list {
+		m := model.NewFromCanonical(mtr)
+		if len(c.key) != 0 {
+			if err := m.Sign(c.key); err != nil {
+				return err
+			}
+		}
+		body = append(body, m)
+	}
+	resp, err := c.R().SetContext(ctx).SetBody(body).Post("updates")
+	if err != nil {
+		return err
+	}
+	if err = httplib.MustBeOK(resp.StatusCode()); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (c httpClient) Value(ctx context.Context, id string, typ metric.Type) (value metric.Value, err error) {
 	mtr := &model.Metrics{
 		ID:    id,

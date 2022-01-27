@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/zhupanovdm/go-runtime-monitor/config"
+	"github.com/zhupanovdm/go-runtime-monitor/model/metric"
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/httplib"
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/logging"
 	"github.com/zhupanovdm/go-runtime-monitor/providers/monitor/model"
@@ -55,6 +56,42 @@ func (h *MetricsAPIHandler) Update(resp http.ResponseWriter, req *http.Request) 
 		logger.Err(err).Msg("failed to persist metric")
 		httplib.Error(resp, http.StatusInternalServerError, nil)
 		return
+	}
+}
+
+func (h *MetricsAPIHandler) UpdateBulk(resp http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+
+	ctx, _ := logging.SetIfAbsentCID(req.Context(), logging.NewCID())
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(metricsHandlerAPIName), logging.WithCID(ctx))
+	logger.Info().Msg("handling [Updates]")
+
+	var body []model.Metrics
+	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+		logger.Err(err).Msg("failed to process request body")
+		httplib.Error(resp, http.StatusBadRequest, err)
+		return
+	}
+
+	list := make(metric.List, 0, len(body))
+	for _, m := range body {
+		if err := m.Validate(model.CheckID, model.CheckValue, model.CheckType); err != nil {
+			logger.Err(err).Msg("validation failed")
+			httplib.Error(resp, http.StatusBadRequest, err)
+			return
+		}
+		if len(h.key) != 0 {
+			if err := m.Verify(h.key); err != nil {
+				logger.Err(err).Msg("sign verification failed")
+				httplib.Error(resp, http.StatusBadRequest, err)
+				return
+			}
+		}
+		list = append(list, m.ToCanonical())
+	}
+	if err := h.monitor.UpdateBulk(ctx, list); err != nil {
+		logger.Err(err).Msg("failed to batch update metrics")
+		httplib.Error(resp, http.StatusInternalServerError, nil)
 	}
 }
 

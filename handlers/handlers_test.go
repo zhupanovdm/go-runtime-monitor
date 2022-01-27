@@ -26,6 +26,10 @@ var _ monitor.Monitor = (*monitorServiceStub)(nil)
 
 type monitorServiceStub struct{}
 
+func (s *monitorServiceStub) UpdateBulk(context.Context, metric.List) error {
+	return nil
+}
+
 func (s *monitorServiceStub) BackgroundTask() task.Task {
 	return task.VoidTask
 }

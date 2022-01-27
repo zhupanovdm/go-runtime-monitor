@@ -62,8 +62,34 @@ func (r *metricsReporter) report(ctx context.Context) error {
 	return nil
 }
 
+func (r *metricsReporter) reportBulk(ctx context.Context) error {
+	ctx, logger := logging.GetOrCreateLogger(ctx, logging.WithService(r))
+	logger.Info().Msg("reporting metrics to monitor")
+
+	list := make(metric.List, 0, len(r.events))
+	for cnt := cap(list); cnt > 0; cnt-- {
+		event := <-r.events
+
+		ctx, _ := logging.SetCID(ctx, event.CorrelationID)
+		_, logger := logging.GetOrCreateLogger(ctx, logging.WithCID(ctx))
+		logger.UpdateContext(logging.LogCtxFrom(event.Metric))
+		logger.Trace().Msg("gathering to batch")
+
+		list = append(list, event.Metric)
+	}
+
+	ctx, _ = logging.SetCID(ctx, logging.NewCID())
+	if err := r.UpdateBulk(ctx, list); err != nil {
+		logger.Err(err).Msg("metrics not sent")
+		return err
+	}
+
+	logger.Info().Msgf("reporting completed (%d events)", len(list))
+	return nil
+}
+
 func (r *metricsReporter) BackgroundTask() task.Task {
-	return task.Task(func(ctx context.Context) { _ = r.report(ctx) }).With(task.PeriodicRun(r.interval))
+	return task.Task(func(ctx context.Context) { _ = r.reportBulk(ctx) }).With(task.PeriodicRun(r.interval))
 }
 
 func (r *metricsReporter) Name() string {

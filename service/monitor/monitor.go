@@ -71,6 +71,25 @@ func (m *monitor) Update(ctx context.Context, mtr *metric.Metric) error {
 	return nil
 }
 
+func (m *monitor) UpdateBulk(ctx context.Context, list metric.List) error {
+	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithService(m), logging.WithCID(ctx))
+	logger.Info().Msg("serving [UpdateBulk]")
+
+	ctx = logging.SetLogger(ctx, logger)
+	if err := m.metricStorage.UpdateBulk(ctx, list); err != nil {
+		logger.Err(err).Msg("update bulk: failed to batch update storage")
+		return err
+	}
+	if m.isSyncDump() {
+		if err := m.Dump(ctx); err != nil {
+			logger.Err(err).Msg("update bulk: failed to sync dump")
+			return err
+		}
+	}
+	return nil
+}
+
 func (m *monitor) Get(ctx context.Context, id string, typ metric.Type) (*metric.Metric, error) {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithService(m), logging.WithCID(ctx))

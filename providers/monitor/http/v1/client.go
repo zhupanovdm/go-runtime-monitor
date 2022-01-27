@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"errors"
 	"path"
 
 	"github.com/go-resty/resty/v2"
@@ -31,6 +32,10 @@ func (c httpClient) Update(ctx context.Context, mtr *metric.Metric) error {
 		return err
 	}
 	return nil
+}
+
+func (c httpClient) UpdateBulk(context.Context, metric.List) error {
+	return errors.New("unsupported operation")
 }
 
 func (c httpClient) Value(ctx context.Context, id string, typ metric.Type) (metric.Value, error) {
