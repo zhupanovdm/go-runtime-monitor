@@ -178,3 +178,14 @@ func CheckType(m *Metrics) error {
 	}
 	return nil
 }
+
+func CheckHash(key string) func(*Metrics) error {
+	return func(m *Metrics) error {
+		if len(key) != 0 {
+			if err := m.Verify(key); err != nil {
+				return fmt.Errorf("metrics verification: %w", err)
+			}
+		}
+		return nil
+	}
+}

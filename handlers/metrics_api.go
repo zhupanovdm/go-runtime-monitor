@@ -36,17 +36,10 @@ func (h *MetricsAPIHandler) Update(resp http.ResponseWriter, req *http.Request) 
 		return
 	}
 
-	if err = body.Validate(model.CheckID, model.CheckValue, model.CheckType); err != nil {
+	if err = body.Validate(model.CheckID, model.CheckValue, model.CheckType, model.CheckHash(h.key)); err != nil {
 		logger.Err(err).Msg("validation failed")
 		httplib.Error(resp, http.StatusBadRequest, err)
 		return
-	}
-	if len(h.key) != 0 {
-		if err := body.Verify(h.key); err != nil {
-			logger.Err(err).Msg("sign verification failed")
-			httplib.Error(resp, http.StatusBadRequest, err)
-			return
-		}
 	}
 
 	mtr := body.ToCanonical()
@@ -75,17 +68,10 @@ func (h *MetricsAPIHandler) UpdateBulk(resp http.ResponseWriter, req *http.Reque
 
 	list := make(metric.List, 0, len(body))
 	for _, m := range body {
-		if err := m.Validate(model.CheckID, model.CheckValue, model.CheckType); err != nil {
+		if err := m.Validate(model.CheckID, model.CheckValue, model.CheckType, model.CheckHash(h.key)); err != nil {
 			logger.Err(err).Msg("validation failed")
 			httplib.Error(resp, http.StatusBadRequest, err)
 			return
-		}
-		if len(h.key) != 0 {
-			if err := m.Verify(h.key); err != nil {
-				logger.Err(err).Msg("sign verification failed")
-				httplib.Error(resp, http.StatusBadRequest, err)
-				return
-			}
 		}
 		list = append(list, m.ToCanonical())
 	}
