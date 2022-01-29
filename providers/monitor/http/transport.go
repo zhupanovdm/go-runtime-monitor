@@ -11,7 +11,7 @@ import (
 )
 
 func NewClient(cfg *monitor.Config, name string) (*resty.Client, error) {
-	baseURL, err := baseURL(cfg)
+	baseURL, err := getURL(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set client destination address: %w", err)
 	}
@@ -24,13 +24,16 @@ func NewClient(cfg *monitor.Config, name string) (*resty.Client, error) {
 	return client, err
 }
 
-func baseURL(cfg *monitor.Config) (*url.URL, error) {
+func getURL(cfg *monitor.Config) (*url.URL, error) {
 	u, err := url.Parse(cfg.Address)
 	if err != nil {
 		return nil, fmt.Errorf("invalid client destination address: %s: %w", cfg.Address, err)
 	}
-	if len(u.Scheme) == 0 {
-		u.Scheme = "http"
+	if u.Host == "" {
+		u, err = url.Parse("http://" + cfg.Address)
+		if err != nil {
+			return nil, fmt.Errorf("invalid client destination address: %s: %w", cfg.Address, err)
+		}
 	}
 	return u, nil
 }
