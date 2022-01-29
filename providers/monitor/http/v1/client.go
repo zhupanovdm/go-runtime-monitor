@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"errors"
 	"path"
 
 	"github.com/go-resty/resty/v2"
@@ -33,6 +34,10 @@ func (c httpClient) Update(ctx context.Context, mtr *metric.Metric) error {
 	return nil
 }
 
+func (c httpClient) UpdateBulk(context.Context, metric.List) error {
+	return errors.New("unsupported operation")
+}
+
 func (c httpClient) Value(ctx context.Context, id string, typ metric.Type) (metric.Value, error) {
 	resp, err := c.R().
 		SetContext(ctx).
@@ -46,8 +51,12 @@ func (c httpClient) Value(ctx context.Context, id string, typ metric.Type) (metr
 	return typ.Parse(string(resp.Body()))
 }
 
-func NewClient(cfg *monitor.Config) monitor.Provider {
-	return &httpClient{
-		Client: http.NewClient(cfg, clientName).SetHeader("Content-Type", "text/plain"),
+func NewClient(cfg *monitor.Config) (monitor.Provider, error) {
+	c, err := http.NewClient(cfg, clientName)
+	if err != nil {
+		return nil, err
 	}
+	return &httpClient{
+		Client: c.SetHeader("Content-Type", "text/plain"),
+	}, nil
 }

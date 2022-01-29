@@ -5,19 +5,29 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/zhupanovdm/go-runtime-monitor/config"
 )
 
 func TestMetricsHandler(t *testing.T) {
-	ts := NewServer(&monitorServiceStub{})
+	ts := NewServer(&config.Config{}, &monitorServiceStub{})
 	defer ts.Close()
 
 	tests := []struct {
-		name       string
-		method     string
-		url        string
-		wantStatus int
-		want       string
+		name            string
+		method          string
+		url             string
+		wantStatus      int
+		want            string
+		wantContentType string
 	}{
+		{
+			name:            "Get summary",
+			method:          "GET",
+			url:             "/",
+			wantStatus:      http.StatusOK,
+			wantContentType: "text/html",
+		},
 		{
 			name:       "Update gauge",
 			method:     "POST",
@@ -25,11 +35,12 @@ func TestMetricsHandler(t *testing.T) {
 			wantStatus: http.StatusOK,
 		},
 		{
-			name:       "Get gauge",
-			method:     "GET",
-			url:        "/value/gauge/foo",
-			wantStatus: http.StatusOK,
-			want:       "0.000",
+			name:            "Get gauge",
+			method:          "GET",
+			url:             "/value/gauge/foo",
+			wantStatus:      http.StatusOK,
+			want:            "0.000",
+			wantContentType: "text/plain",
 		},
 		{
 			name:       "Get absent metric",
@@ -44,11 +55,12 @@ func TestMetricsHandler(t *testing.T) {
 			wantStatus: http.StatusOK,
 		},
 		{
-			name:       "Get counter",
-			method:     "GET",
-			url:        "/value/counter/foo",
-			wantStatus: http.StatusOK,
-			want:       "0",
+			name:            "Get counter",
+			method:          "GET",
+			url:             "/value/counter/foo",
+			wantStatus:      http.StatusOK,
+			want:            "0",
+			wantContentType: "text/plain",
 		},
 		{
 			name:       "Update with incorrect gauge value",
@@ -102,10 +114,13 @@ func TestMetricsHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			status, result, _ := testRequest(t, ts, tt.method, tt.url, nil)
+			status, result, hdr := testRequest(t, ts, tt.method, tt.url, nil)
 			if assert.Equal(t, tt.wantStatus, status) {
 				if len(tt.want) != 0 {
 					assert.Equal(t, []byte(tt.want), result)
+				}
+				if len(tt.wantContentType) != 0 {
+					assert.Contains(t, hdr.Get("Content-Type"), tt.wantContentType)
 				}
 			}
 		})

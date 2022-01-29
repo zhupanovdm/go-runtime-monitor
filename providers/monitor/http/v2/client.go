@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/go-resty/resty/v2"
 
@@ -20,10 +21,38 @@ var _ monitor.Provider = (*httpClient)(nil)
 
 type httpClient struct {
 	*resty.Client
+	key string
 }
 
 func (c httpClient) Update(ctx context.Context, mtr *metric.Metric) error {
-	resp, err := c.R().SetContext(ctx).SetBody(model.NewFromCanonical(mtr)).Post("update")
+	body := model.NewFromCanonical(mtr)
+	if len(c.key) != 0 {
+		if err := body.Sign(c.key); err != nil {
+			return err
+		}
+	}
+	resp, err := c.R().SetContext(ctx).SetBody(body).Post("update")
+	if err != nil {
+		return err
+	}
+	if err = httplib.MustBeOK(resp.StatusCode()); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c httpClient) UpdateBulk(ctx context.Context, list metric.List) error {
+	body := make([]*model.Metrics, 0, len(list))
+	for _, mtr := range list {
+		m := model.NewFromCanonical(mtr)
+		if len(c.key) != 0 {
+			if err := m.Sign(c.key); err != nil {
+				return err
+			}
+		}
+		body = append(body, m)
+	}
+	resp, err := c.R().SetContext(ctx).SetBody(body).Post("updates")
 	if err != nil {
 		return err
 	}
@@ -51,12 +80,22 @@ func (c httpClient) Value(ctx context.Context, id string, typ metric.Type) (valu
 	if err = json.NewDecoder(bytes.NewBuffer(resp.Body())).Decode(mtr); err != nil {
 		return
 	}
+	if len(c.key) != 0 {
+		if err := mtr.Verify(c.key); err != nil {
+			return nil, fmt.Errorf("response verification failed: %w", err)
+		}
+	}
 	value = mtr.ToCanonical().Value
 	return
 }
 
-func NewClient(cfg *monitor.Config) monitor.Provider {
-	return &httpClient{
-		Client: http.NewClient(cfg, clientName).SetHeader("Content-Type", "application/json"),
+func NewClient(cfg *monitor.Config) (monitor.Provider, error) {
+	c, err := http.NewClient(cfg, clientName)
+	if err != nil {
+		return nil, err
 	}
+	return &httpClient{
+		Client: c.SetHeader("Content-Type", "application/json"),
+		key:    cfg.Key,
+	}, nil
 }

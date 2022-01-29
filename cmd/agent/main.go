@@ -18,6 +18,7 @@ func cli(cfg *config.Config, flag *flag.FlagSet) {
 	flag.StringVar(&cfg.Address, "a", config.DefaultAddress, "Monitor server address")
 	flag.DurationVar(&cfg.ReportInterval, "r", config.DefaultReportInterval, "Agent reporting interval")
 	flag.DurationVar(&cfg.PollInterval, "p", config.DefaultPollInterval, "Agent polling interval")
+	flag.StringVar(&cfg.Key, "k", "", "Packet signing key")
 }
 
 func main() {
@@ -31,7 +32,12 @@ func main() {
 		return
 	}
 
-	mon := client.NewClient(monitor.NewConfig(cfg))
+	mon, err := client.NewClient(monitor.NewConfig(cfg))
+	if err != nil {
+		logger.Err(err).Msg("failed to create monitor client")
+		return
+	}
+
 	reporterSvc := agent.NewMetricsReporter(cfg, mon)
 	collectorSvc := agent.NewRuntimeMetricsCollector(cfg, reporterSvc)
 

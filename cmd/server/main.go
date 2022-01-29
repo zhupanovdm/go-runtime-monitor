@@ -11,7 +11,9 @@ import (
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/logging"
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/task"
 	"github.com/zhupanovdm/go-runtime-monitor/service/monitor"
+	"github.com/zhupanovdm/go-runtime-monitor/storage"
 	"github.com/zhupanovdm/go-runtime-monitor/storage/file"
+	"github.com/zhupanovdm/go-runtime-monitor/storage/sqldb"
 	"github.com/zhupanovdm/go-runtime-monitor/storage/trivial"
 )
 
@@ -20,6 +22,8 @@ func cli(cfg *config.Config, flag *flag.FlagSet) {
 	flag.BoolVar(&cfg.Restore, "r", config.DefaultRestore, "Monitor will restore metrics at startup")
 	flag.DurationVar(&cfg.StoreInterval, "i", config.DefaultStoreInterval, "Monitor store interval")
 	flag.StringVar(&cfg.StoreFile, "f", config.DefaultStoreFile, "Monitor store file")
+	flag.StringVar(&cfg.Key, "k", "", "Packet signing key")
+	flag.StringVar(&cfg.Database, "d", "", "Database connection string")
 }
 
 func main() {
@@ -33,7 +37,24 @@ func main() {
 		return
 	}
 
-	mon := monitor.NewMonitor(cfg, file.NewStorage(cfg), trivial.NewGaugeStorage(), trivial.NewCounterStorage())
+	dumper := file.New(cfg)
+	if dumper != nil {
+		defer dumper.Close(ctx)
+		if err := dumper.Init(ctx); err != nil {
+			logger.Err(err).Msg("failed to init dump storage")
+			return
+		}
+	}
+
+	st := storage.New(cfg, sqldb.New(sqldb.PGX{}), trivial.New)
+	if st != nil {
+		if err := st.Init(ctx); err != nil {
+			logger.Err(err).Msg("failed to init metrics storage")
+			return
+		}
+	}
+
+	mon := monitor.NewMonitor(cfg, dumper, st)
 	if err := mon.Restore(ctx); err != nil {
 		logger.Err(err).Msg("failed to restore metrics")
 	}
@@ -41,12 +62,14 @@ func main() {
 	var wg sync.WaitGroup
 	go mon.BackgroundTask().With(task.CompletionWait(&wg))(ctx)
 
-	root := handlers.NewMetricsRouter(handlers.NewMetricsHandler(mon), handlers.NewMetricsAPIHandler(mon))
+	root := handlers.NewMetricsRouter(handlers.NewMetricsHandler(mon), handlers.NewMetricsAPIHandler(cfg, mon))
 	server := monitor.NewServer(cfg, root)
 	server.Start(ctx)
 
 	logger.Info().Msgf("%v signal received", <-app.TerminationSignal())
+
 	server.Stop(ctx)
+
 	cancel()
 	wg.Wait()
 }

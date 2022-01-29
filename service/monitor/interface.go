@@ -16,4 +16,7 @@ type Monitor interface {
 	GetAll(ctx context.Context) (metric.List, error)
 
 	Update(ctx context.Context, mtr *metric.Metric) error
+	UpdateBulk(ctx context.Context, list metric.List) error
+
+	Ping(ctx context.Context) error
 }

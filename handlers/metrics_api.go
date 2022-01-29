@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/zhupanovdm/go-runtime-monitor/config"
+	"github.com/zhupanovdm/go-runtime-monitor/model/metric"
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/httplib"
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/logging"
 	"github.com/zhupanovdm/go-runtime-monitor/providers/monitor/model"
@@ -17,6 +19,7 @@ const metricsHandlerAPIName = "Metrics REST API handler"
 
 type MetricsAPIHandler struct {
 	monitor monitor.Monitor
+	key     string
 }
 
 func (h *MetricsAPIHandler) Update(resp http.ResponseWriter, req *http.Request) {
@@ -33,7 +36,7 @@ func (h *MetricsAPIHandler) Update(resp http.ResponseWriter, req *http.Request) 
 		return
 	}
 
-	if err = body.Validate(model.CheckID, model.CheckValue, model.CheckType); err != nil {
+	if err = body.Validate(model.CheckID, model.CheckValue, model.CheckType, model.CheckHash(h.key)); err != nil {
 		logger.Err(err).Msg("validation failed")
 		httplib.Error(resp, http.StatusBadRequest, err)
 		return
@@ -46,6 +49,35 @@ func (h *MetricsAPIHandler) Update(resp http.ResponseWriter, req *http.Request) 
 		logger.Err(err).Msg("failed to persist metric")
 		httplib.Error(resp, http.StatusInternalServerError, nil)
 		return
+	}
+}
+
+func (h *MetricsAPIHandler) UpdateBulk(resp http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+
+	ctx, _ := logging.SetIfAbsentCID(req.Context(), logging.NewCID())
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(metricsHandlerAPIName), logging.WithCID(ctx))
+	logger.Info().Msg("handling [Updates]")
+
+	var metrics []model.Metrics
+	if err := json.NewDecoder(req.Body).Decode(&metrics); err != nil {
+		logger.Err(err).Msg("failed to process request body")
+		httplib.Error(resp, http.StatusBadRequest, err)
+		return
+	}
+
+	list := make(metric.List, 0, len(metrics))
+	for _, m := range metrics {
+		if err := m.Validate(model.CheckID, model.CheckValue, model.CheckType, model.CheckHash(h.key)); err != nil {
+			logger.Err(err).Msg("validation failed")
+			httplib.Error(resp, http.StatusBadRequest, err)
+			return
+		}
+		list = append(list, m.ToCanonical())
+	}
+	if err := h.monitor.UpdateBulk(ctx, list); err != nil {
+		logger.Err(err).Msg("failed to batch update metrics")
+		httplib.Error(resp, http.StatusInternalServerError, nil)
 	}
 }
 
@@ -76,6 +108,7 @@ func (h *MetricsAPIHandler) Value(resp http.ResponseWriter, req *http.Request) {
 	if mtr, err = h.monitor.Get(ctx, mtr.ID, mtr.Type()); err != nil {
 		logger.Err(err).Msg("metric read failed")
 		httplib.Error(resp, http.StatusInternalServerError, nil)
+		return
 	}
 	if mtr == nil {
 		logger.Warn().Msg("requested metric not found")
@@ -84,10 +117,33 @@ func (h *MetricsAPIHandler) Value(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	resp.Header().Set("Content-Type", "application/json")
-	if err = json.NewEncoder(resp).Encode(model.NewFromCanonical(mtr)); err != nil {
+
+	body = model.NewFromCanonical(mtr)
+	if len(h.key) != 0 {
+		if err := body.Sign(h.key); err != nil {
+			logger.Err(err).Msg("signing failed")
+			httplib.Error(resp, http.StatusBadRequest, err)
+			return
+		}
+	}
+
+	if err = json.NewEncoder(resp).Encode(body); err != nil {
 		logger.Err(err).Msg("failed to encode response body")
 		httplib.Error(resp, http.StatusInternalServerError, nil)
 		return
+	}
+}
+
+func (h *MetricsAPIHandler) Ping(resp http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+
+	ctx, _ := logging.SetIfAbsentCID(req.Context(), logging.NewCID())
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(metricsHandlerAPIName), logging.WithCID(ctx))
+	logger.Info().Msg("handling [Ping]")
+
+	if err := h.monitor.Ping(ctx); err != nil {
+		logger.Err(err).Msg("failed to check monitor storage availability")
+		httplib.Error(resp, http.StatusInternalServerError, nil) // IMHO should 503
 	}
 }
 
@@ -99,6 +155,9 @@ func (h *MetricsAPIHandler) decodeRequestBody(body io.Reader) (*model.Metrics, e
 	return metrics, nil
 }
 
-func NewMetricsAPIHandler(service monitor.Monitor) *MetricsAPIHandler {
-	return &MetricsAPIHandler{service}
+func NewMetricsAPIHandler(cfg *config.Config, service monitor.Monitor) *MetricsAPIHandler {
+	return &MetricsAPIHandler{
+		monitor: service,
+		key:     cfg.Key,
+	}
 }

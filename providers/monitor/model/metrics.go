@@ -1,6 +1,9 @@
 package model
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,6 +18,31 @@ type Metrics struct {
 	MType string   `json:"type"`            // metric type is enum value {"counter", "gauge"}
 	Delta *int64   `json:"delta,omitempty"` // metric measure if MType is "counter"
 	Value *float64 `json:"value,omitempty"` // metric measure if MType is "gauge"
+	Hash  string   `json:"hash,omitempty"`  // packet hash sum
+}
+
+func (m *Metrics) Sign(key string) error {
+	hash, err := m.calcHash([]byte(key))
+	if err != nil {
+		return err
+	}
+	m.Hash = hex.EncodeToString(hash)
+	return nil
+}
+
+func (m Metrics) Verify(key string) error {
+	mac1, err := hex.DecodeString(m.Hash)
+	if err != nil {
+		return fmt.Errorf("can't decode packet hash: %w", err)
+	}
+	mac2, err := m.calcHash([]byte(key))
+	if err != nil {
+		return fmt.Errorf("unable to recalculate packet hash: %w", err)
+	}
+	if !hmac.Equal(mac1, mac2) {
+		return fmt.Errorf("sign verification failed")
+	}
+	return nil
 }
 
 func (m Metrics) String() string {
@@ -98,6 +126,22 @@ func NewFromCanonical(mtr *metric.Metric) *Metrics {
 	return nil
 }
 
+func (m Metrics) calcHash(key []byte) ([]byte, error) {
+	var data string
+	switch metric.Type(m.MType) {
+	case metric.CounterType:
+		data = fmt.Sprintf("%s:counter:%d", m.ID, *m.Delta)
+	case metric.GaugeType:
+		data = fmt.Sprintf("%s:gauge:%f", m.ID, *m.Value)
+	default:
+		return nil, fmt.Errorf("hash calc: can't calc for unknown type %s", m.MType)
+	}
+
+	h := hmac.New(sha256.New, key)
+	h.Write([]byte(data))
+	return h.Sum(nil), nil
+}
+
 func (m *Metrics) Validate(validators ...func(*Metrics) error) error {
 	for _, validator := range validators {
 		if err := validator(m); err != nil {
@@ -133,4 +177,15 @@ func CheckType(m *Metrics) error {
 		return fmt.Errorf("metrics validate: type assertion: %w", err)
 	}
 	return nil
+}
+
+func CheckHash(key string) func(*Metrics) error {
+	return func(m *Metrics) error {
+		if len(key) != 0 {
+			if err := m.Verify(key); err != nil {
+				return fmt.Errorf("metrics verification: %w", err)
+			}
+		}
+		return nil
+	}
 }

@@ -23,12 +23,11 @@ func (w *jsonWriter) Write(list metric.List) error {
 
 	for _, mtr := range list {
 		if err := w.encoder.Encode(mtr); err != nil {
-			logger.Err(err).Msgf("json write: failed to encode metric %v", mtr)
+			logger.Err(err).Msgf("json writer: failed to encode metric %v", mtr)
 			return err
 		}
 	}
-
-	logger.Trace().Msgf("json write: %d records written", len(list))
+	logger.Trace().Msgf("json writer: wrote %d records", len(list))
 	return nil
 }
 
@@ -42,6 +41,7 @@ func (w *jsonWriter) Close() {
 		logger.Err(err).Msg("json write: failed to close destination")
 		return
 	}
+	logger.Trace().Msg("json writer: closed")
 }
 
 func NewJSONWriter(ctx context.Context, dest io.WriteCloser) *jsonWriter {
@@ -56,17 +56,16 @@ func NewJSONFileWriter(ctx context.Context, fileName string) (*jsonWriter, error
 	_, logger := logging.GetOrCreateLogger(ctx)
 
 	if err := os.Remove(fileName); err != nil && err != fs.ErrNotExist {
-		logger.Err(err).Msg("json write: failed to clear destination")
+		logger.Err(err).Msg("json writer: failed to clear destination")
 		return nil, err
 	}
-
 	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE, 0777)
 	if err != nil {
-		logger.Err(err).Msg("json write: failed to open destination")
+		logger.Err(err).Msg("json writer: failed to open destination")
 		return nil, err
 	}
 
-	logger.Trace().Msgf("json write: opened for write: %s", file.Name())
+	logger.Trace().Msgf("json writer: opened for write: %s", file.Name())
 	return NewJSONWriter(ctx, file), nil
 }
 
@@ -85,16 +84,16 @@ func (r *jsonReader) Read() (metric.List, error) {
 		list = append(list, mtr)
 		data := r.scanner.Bytes()
 		if err := json.Unmarshal(data, mtr); err != nil {
-			logger.Err(err).Msgf("json read: failed to decode '%s'", string(data))
+			logger.Err(err).Msgf("json reader: failed to decode: %s", string(data))
 			return nil, err
 		}
 	}
 	if err := r.scanner.Err(); err != nil {
-		logger.Err(err).Msg("json read: failed to read source")
+		logger.Err(err).Msg("json reader: failed to read source")
 		return nil, err
 	}
 
-	logger.Trace().Msgf("json read: %d records read", len(list))
+	logger.Trace().Msgf("json reader: %d records read", len(list))
 	return list, nil
 }
 
@@ -105,8 +104,9 @@ func (r *jsonReader) Close() {
 	_, logger := logging.GetOrCreateLogger(r.ctx)
 
 	if err := r.src.Close(); err != nil {
-		logger.Err(err).Msg("json read: failed to close source")
+		logger.Err(err).Msg("json reader: failed to close source")
 	}
+	logger.Trace().Msg("json reader: closed")
 }
 
 func NewJSONReader(ctx context.Context, src io.ReadCloser) *jsonReader {
@@ -121,10 +121,10 @@ func NewJSONFileReader(ctx context.Context, fileName string) (*jsonReader, error
 	_, logger := logging.GetOrCreateLogger(ctx)
 	file, err := os.OpenFile(fileName, os.O_RDONLY|os.O_CREATE, 0777)
 	if err != nil {
-		logger.Err(err).Msg("json read: failed to open source")
+		logger.Err(err).Msg("json reader: failed to open source")
 		return nil, err
 	}
 
-	logger.Trace().Msgf("json read: opened for read: %s", file.Name())
+	logger.Trace().Msgf("json reader: opened for read: %s", file.Name())
 	return NewJSONReader(ctx, file), nil
 }
