@@ -11,13 +11,13 @@ import (
 )
 
 func NewClient(cfg *monitor.Config, name string) (*resty.Client, error) {
-	baseUrl, err := baseURL(cfg)
+	baseURL, err := baseURL(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set client destination address: %w", err)
 	}
 
 	client := resty.New()
-	client.SetBaseURL(baseUrl.String())
+	client.SetBaseURL(baseURL.String())
 	client.SetTimeout(cfg.Timeout)
 	client.OnBeforeRequest(requestHandler(cfg, name))
 	client.OnAfterResponse(responseHandler(cfg, name))
