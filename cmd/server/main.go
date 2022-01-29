@@ -39,6 +39,7 @@ func main() {
 
 	dumper := file.New(cfg)
 	if dumper != nil {
+		defer dumper.Close(ctx)
 		if err := dumper.Init(ctx); err != nil {
 			logger.Err(err).Msg("failed to init dump storage")
 			return
@@ -68,7 +69,6 @@ func main() {
 	logger.Info().Msgf("%v signal received", <-app.TerminationSignal())
 
 	server.Stop(ctx)
-	dumper.Close(ctx)
 
 	cancel()
 	wg.Wait()

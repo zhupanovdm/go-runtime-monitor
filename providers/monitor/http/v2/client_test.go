@@ -50,8 +50,10 @@ func TestHttpClientUpdateWithSignVerification(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client := newTestClient(server.URL, tt.key)
-			err := client.Update(context.TODO(), tt.metric)
+			client, err := newTestClient(server.URL, tt.key)
+			require.NoError(t, err, "failed to create client")
+
+			err = client.Update(context.TODO(), tt.metric)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -89,8 +91,10 @@ func TestHttpClientValueWithSignVerification(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client := newTestClient(server.URL, tt.key)
-			_, err := client.Value(context.TODO(), tt.id, tt.typ)
+			client, err := newTestClient(server.URL, tt.key)
+			require.NoError(t, err, "failed to create client")
+
+			_, err = client.Value(context.TODO(), tt.id, tt.typ)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -100,7 +104,7 @@ func TestHttpClientValueWithSignVerification(t *testing.T) {
 	}
 }
 
-func newTestClient(addr string, key string) monitor.Provider {
+func newTestClient(addr string, key string) (monitor.Provider, error) {
 	return NewClient(&monitor.Config{
 		Config:  &config.Config{Address: addr, Key: key},
 		Timeout: 1 * time.Second,

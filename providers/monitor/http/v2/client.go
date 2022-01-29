@@ -89,9 +89,13 @@ func (c httpClient) Value(ctx context.Context, id string, typ metric.Type) (valu
 	return
 }
 
-func NewClient(cfg *monitor.Config) monitor.Provider {
-	return &httpClient{
-		Client: http.NewClient(cfg, clientName).SetHeader("Content-Type", "application/json"),
-		key:    cfg.Key,
+func NewClient(cfg *monitor.Config) (monitor.Provider, error) {
+	c, err := http.NewClient(cfg, clientName)
+	if err != nil {
+		return nil, err
 	}
+	return &httpClient{
+		Client: c.SetHeader("Content-Type", "application/json"),
+		key:    cfg.Key,
+	}, nil
 }

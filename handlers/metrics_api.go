@@ -59,15 +59,15 @@ func (h *MetricsAPIHandler) UpdateBulk(resp http.ResponseWriter, req *http.Reque
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(metricsHandlerAPIName), logging.WithCID(ctx))
 	logger.Info().Msg("handling [Updates]")
 
-	var body []model.Metrics
-	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+	var metrics []model.Metrics
+	if err := json.NewDecoder(req.Body).Decode(&metrics); err != nil {
 		logger.Err(err).Msg("failed to process request body")
 		httplib.Error(resp, http.StatusBadRequest, err)
 		return
 	}
 
-	list := make(metric.List, 0, len(body))
-	for _, m := range body {
+	list := make(metric.List, 0, len(metrics))
+	for _, m := range metrics {
 		if err := m.Validate(model.CheckID, model.CheckValue, model.CheckType, model.CheckHash(h.key)); err != nil {
 			logger.Err(err).Msg("validation failed")
 			httplib.Error(resp, http.StatusBadRequest, err)

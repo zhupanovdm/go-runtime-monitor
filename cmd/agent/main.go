@@ -32,7 +32,12 @@ func main() {
 		return
 	}
 
-	mon := client.NewClient(monitor.NewConfig(cfg))
+	mon, err := client.NewClient(monitor.NewConfig(cfg))
+	if err != nil {
+		logger.Err(err).Msg("failed to create monitor client")
+		return
+	}
+
 	reporterSvc := agent.NewMetricsReporter(cfg, mon)
 	collectorSvc := agent.NewRuntimeMetricsCollector(cfg, reporterSvc)
 
