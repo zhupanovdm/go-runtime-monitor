@@ -9,6 +9,7 @@ import (
 
 type CollectorService interface {
 	pkg.BackgroundService
+	Poll(ctx context.Context) error
 }
 
 type ReporterService interface {

@@ -25,8 +25,7 @@ type metricEvent struct {
 }
 
 func (r *metricsReporter) Publish(ctx context.Context, mtr *metric.Metric) {
-	var cid string
-	ctx, cid = logging.SetIfAbsentCID(ctx, logging.NewCID())
+	ctx, cid := logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithService(r), logging.WithCID(ctx))
 
 	logger.UpdateContext(logging.LogCtxFrom(mtr))
@@ -39,7 +38,8 @@ func (r *metricsReporter) Publish(ctx context.Context, mtr *metric.Metric) {
 }
 
 func (r *metricsReporter) report(ctx context.Context) error {
-	ctx, logger := logging.GetOrCreateLogger(ctx, logging.WithService(r))
+	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithService(r), logging.WithCID(ctx))
 	logger.Info().Msg("reporting metrics to monitor")
 
 	for cnt := len(r.events); cnt > 0; cnt-- {
@@ -63,7 +63,8 @@ func (r *metricsReporter) report(ctx context.Context) error {
 }
 
 func (r *metricsReporter) reportBulk(ctx context.Context) error {
-	ctx, logger := logging.GetOrCreateLogger(ctx, logging.WithService(r))
+	ctx, cid := logging.SetIfAbsentCID(ctx, logging.NewCID())
+	_, logger := logging.GetOrCreateLogger(ctx, logging.WithService(r), logging.WithCID(ctx))
 	logger.Info().Msg("reporting metrics to monitor")
 
 	list := make(metric.List, 0, len(r.events))
@@ -73,12 +74,11 @@ func (r *metricsReporter) reportBulk(ctx context.Context) error {
 		ctx, _ := logging.SetCID(ctx, event.CorrelationID)
 		_, logger := logging.GetOrCreateLogger(ctx, logging.WithCID(ctx))
 		logger.UpdateContext(logging.LogCtxFrom(event.Metric))
-		logger.Trace().Msg("gathering to batch")
+		logger.Trace().Msgf("gathering to batch: %s", cid)
 
 		list = append(list, event.Metric)
 	}
 
-	ctx, _ = logging.SetCID(ctx, logging.NewCID())
 	if err := r.UpdateBulk(ctx, list); err != nil {
 		logger.Err(err).Msg("metrics not sent")
 		return err
