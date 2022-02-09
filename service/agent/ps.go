@@ -12,8 +12,9 @@ import (
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/logging"
 )
 
-const psName = "MemStats"
+const psName = "ps"
 
+// Collects memory and cpu utilisation
 func ps() Collector {
 	return func(ctx context.Context, reporter ReporterService) error {
 		_, logger := logging.GetOrCreateLogger(ctx)

@@ -74,7 +74,7 @@ func (r *metricsReporter) reportBulk(ctx context.Context) error {
 		ctx, _ := logging.SetCID(ctx, event.CorrelationID)
 		_, logger := logging.GetOrCreateLogger(ctx, logging.WithCID(ctx))
 		logger.UpdateContext(logging.LogCtxFrom(event.Metric))
-		logger.Trace().Msgf("gathering to batch: %s", cid)
+		logger.Trace().Str(logging.CorrelationIDChangedKey, cid).Msg("gathering to batch")
 
 		list = append(list, event.Metric)
 	}

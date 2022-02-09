@@ -13,6 +13,7 @@ import (
 
 const memStatsName = "MemStats"
 
+// Collects std MemStats runtime metrics
 func memStats() Collector {
 	var counter int64
 
