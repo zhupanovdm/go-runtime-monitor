@@ -39,11 +39,13 @@ func main() {
 	}
 
 	reporterSvc := agent.NewMetricsReporter(cfg, mon)
-	collectorSvc := agent.NewRuntimeMetricsCollector(cfg, reporterSvc)
+	memStats := agent.NewMemStatsCollector(cfg, reporterSvc)
+	ps := agent.NewPsCollector(cfg, reporterSvc)
 
 	var wg sync.WaitGroup
 	go reporterSvc.BackgroundTask().With(task.CompletionWait(&wg))(ctx)
-	go collectorSvc.BackgroundTask().With(task.CompletionWait(&wg))(ctx)
+	go memStats.BackgroundTask().With(task.CompletionWait(&wg))(ctx)
+	go ps.BackgroundTask().With(task.CompletionWait(&wg))(ctx)
 
 	logger.Info().Msgf("%v signal received", <-app.TerminationSignal())
 	cancel()

@@ -6,6 +6,9 @@ const (
 	// CorrelationIDKey is used to track unique request.
 	CorrelationIDKey = "cid"
 
+	// CorrelationIDChangedKey is used to track request multiplexing.
+	CorrelationIDChangedKey = "cid_changed"
+
 	// CorrelationIDHeader is used to transport Correlation ID context value via the HTTP header.
 	CorrelationIDHeader = "X-CorrelationID"
 
