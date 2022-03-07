@@ -23,7 +23,7 @@ func Test_ps(t *testing.T) {
 	}
 
 	t.Run("Basic test", func(t *testing.T) {
-		err := ps()(context.TODO(), stub)
+		err := PS()(context.TODO(), stub)
 		if assert.NoError(t, err) {
 			assert.ElementsMatch(t, actual, expected)
 		}

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/zhupanovdm/go-runtime-monitor/model/metric"
 )
@@ -45,9 +46,23 @@ func Test_memStats(t *testing.T) {
 	}
 
 	t.Run("Basic test", func(t *testing.T) {
-		err := memStats()(context.TODO(), stub)
+		err := MemStats()(context.TODO(), stub)
 		if assert.NoError(t, err) {
 			assert.ElementsMatch(t, actual, expected)
+		}
+	})
+}
+
+func Benchmark_memStats(b *testing.B) {
+	b.Run("basic use", func(b *testing.B) {
+		b.StopTimer()
+		stub := NewStubReporter(b, func(*metric.Metric) {})
+		collector := MemStats()
+		ctx := context.TODO()
+		b.StartTimer()
+
+		for i := 0; i < b.N; i++ {
+			require.NoError(b, collector(ctx, stub))
 		}
 	})
 }
