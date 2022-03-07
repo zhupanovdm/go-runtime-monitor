@@ -2,25 +2,25 @@ package agent
 
 import (
 	"context"
-	"testing"
-
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
-
 	"github.com/zhupanovdm/go-runtime-monitor/config"
 	"github.com/zhupanovdm/go-runtime-monitor/model/metric"
 	"github.com/zhupanovdm/go-runtime-monitor/providers/monitor/stub"
+	"testing"
 )
 
 func Benchmark_metricsReporter(b *testing.B) {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+
 	count := 1024
+	ctx := context.TODO()
 
 	b.Run("Reporter publishing", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			b.StopTimer()
 			rep := NewMetricsReporter(&config.Config{ReportBuffer: count + 1}, stub.New())
-			ctx := context.TODO()
 			b.StartTimer()
-
 			publish(ctx, rep, count)
 		}
 	})
@@ -28,7 +28,6 @@ func Benchmark_metricsReporter(b *testing.B) {
 	b.Run("Report bulk", func(b *testing.B) {
 		b.StopTimer()
 		rep := NewMetricsReporter(&config.Config{ReportBuffer: count + 1}, stub.New())
-		ctx := context.TODO()
 		publish(ctx, rep, count)
 		b.StartTimer()
 
