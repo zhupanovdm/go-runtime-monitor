@@ -3,7 +3,10 @@ package main
 import (
 	"context"
 	"flag"
+	"net/http"
 	"sync"
+
+	_ "net/http/pprof"
 
 	"github.com/zhupanovdm/go-runtime-monitor/config"
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/app"
@@ -48,6 +51,23 @@ func main() {
 
 	go reporterSvc.BackgroundTask().With(task.CompletionWait(&wg))(ctx)
 	go collector.BackgroundTask().With(task.CompletionWait(&wg))(ctx)
+
+	srv := &http.Server{Addr: cfg.PProfAddress}
+	defer func() {
+		logger.Info().Msg("closing pprof server")
+		if err := srv.Close(); err != nil {
+			logger.Err(err).Msg("failed to stop pprof server")
+		}
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		logger.Info().Msg("starting pprof server")
+		if err := srv.ListenAndServe(); err != nil {
+			logger.Err(err).Msg("stopped to serve pprof")
+		}
+	}()
 
 	logger.Info().Msgf("%v signal received", <-app.TerminationSignal())
 }
