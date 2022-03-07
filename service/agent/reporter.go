@@ -37,7 +37,7 @@ func (r *metricsReporter) Publish(ctx context.Context, mtr *metric.Metric) {
 	}
 }
 
-func (r *metricsReporter) report(ctx context.Context) error {
+func (r *metricsReporter) Report(ctx context.Context) error {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithService(r), logging.WithCID(ctx))
 	logger.Info().Msg("reporting metrics to monitor")
@@ -62,7 +62,7 @@ func (r *metricsReporter) report(ctx context.Context) error {
 	return nil
 }
 
-func (r *metricsReporter) reportBulk(ctx context.Context) error {
+func (r *metricsReporter) ReportBulk(ctx context.Context) error {
 	ctx, cid := logging.SetIfAbsentCID(ctx, logging.NewCID())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithService(r), logging.WithCID(ctx))
 	logger.Info().Msg("reporting metrics to monitor")
@@ -89,7 +89,7 @@ func (r *metricsReporter) reportBulk(ctx context.Context) error {
 }
 
 func (r *metricsReporter) BackgroundTask() task.Task {
-	return task.Task(func(ctx context.Context) { _ = r.reportBulk(ctx) }).With(task.PeriodicRun(r.interval))
+	return task.Task(func(ctx context.Context) { _ = r.ReportBulk(ctx) }).With(task.PeriodicRun(r.interval))
 }
 
 func (r *metricsReporter) Name() string {

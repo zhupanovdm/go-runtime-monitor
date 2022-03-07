@@ -9,10 +9,13 @@ import (
 
 type CollectorService interface {
 	pkg.BackgroundService
-	Poll(ctx context.Context) error
+	Poll(context.Context)
 }
 
 type ReporterService interface {
 	pkg.BackgroundService
-	Publish(ctx context.Context, mtr *metric.Metric)
+	Publish(context.Context, *metric.Metric)
+
+	Report(context.Context) error
+	ReportBulk(context.Context) error
 }

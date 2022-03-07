@@ -22,7 +22,12 @@ func cli(cfg *config.Config, flag *flag.FlagSet) {
 }
 
 func main() {
+	var wg sync.WaitGroup
+	defer wg.Wait()
+
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName("Agent app"))
 	logger.Info().Msg("starting runtime metrics monitor agent")
 
@@ -39,15 +44,10 @@ func main() {
 	}
 
 	reporterSvc := agent.NewMetricsReporter(cfg, mon)
-	memStats := agent.NewMemStatsCollector(cfg, reporterSvc)
-	ps := agent.NewPsCollector(cfg, reporterSvc)
+	collector := agent.NewMetricsCollector(cfg, reporterSvc, agent.MemStats(), agent.PS())
 
-	var wg sync.WaitGroup
 	go reporterSvc.BackgroundTask().With(task.CompletionWait(&wg))(ctx)
-	go memStats.BackgroundTask().With(task.CompletionWait(&wg))(ctx)
-	go ps.BackgroundTask().With(task.CompletionWait(&wg))(ctx)
+	go collector.BackgroundTask().With(task.CompletionWait(&wg))(ctx)
 
 	logger.Info().Msgf("%v signal received", <-app.TerminationSignal())
-	cancel()
-	wg.Wait()
 }

@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/zhupanovdm/go-runtime-monitor/config"
@@ -14,39 +13,39 @@ var _ CollectorService = (*metricsCollector)(nil)
 
 type (
 	metricsCollector struct {
-		name      string
-		reporter  ReporterService
-		collector Collector
-		interval  time.Duration
+		reporter   ReporterService
+		collectors []Collector
+		interval   time.Duration
 	}
 
 	Collector func(ctx context.Context, reporter ReporterService) error
 )
 
-func (c *metricsCollector) Poll(ctx context.Context) error {
+func (c *metricsCollector) Poll(ctx context.Context) {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
-	_, logger := logging.GetOrCreateLogger(ctx, logging.WithService(c), logging.WithCID(ctx))
+	ctx, logger := logging.GetOrCreateLogger(ctx, logging.WithService(c), logging.WithCID(ctx))
 	logger.Info().Msg("polling metrics")
 
-	err := c.collector(logging.SetLogger(ctx, logger), c.reporter)
-
+	for i, collector := range c.collectors {
+		if err := collector(ctx, c.reporter); err != nil {
+			logger.Err(err).Msgf("collector (%d) failed", i)
+		}
+	}
 	logger.Info().Msg("poll completed")
-	return err
 }
 
 func (c *metricsCollector) BackgroundTask() task.Task {
-	return task.Task(func(ctx context.Context) { _ = c.Poll(ctx) }).With(task.PeriodicRun(c.interval))
+	return task.Task(c.Poll).With(task.PeriodicRun(c.interval))
 }
 
 func (c *metricsCollector) Name() string {
-	return fmt.Sprintf("Agent metrics collector: %s", c.name)
+	return "Agent metrics collector"
 }
 
-func NewMetricsCollector(cfg *config.Config, reporter ReporterService, collector Collector, name string) CollectorService {
+func NewMetricsCollector(cfg *config.Config, reporter ReporterService, collectors ...Collector) CollectorService {
 	return &metricsCollector{
-		collector: collector,
-		name:      name,
-		reporter:  reporter,
-		interval:  cfg.PollInterval,
+		collectors: collectors,
+		reporter:   reporter,
+		interval:   cfg.PollInterval,
 	}
 }

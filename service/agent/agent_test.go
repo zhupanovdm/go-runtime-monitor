@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"testing"
 
 	"github.com/stretchr/testify/require"
 
@@ -13,8 +12,16 @@ import (
 var _ ReporterService = (*stubReporter)(nil)
 
 type stubReporter struct {
-	t        *testing.T
+	t        require.TestingT
 	consumer func(*metric.Metric)
+}
+
+func (s *stubReporter) Report(context.Context) error {
+	return nil
+}
+
+func (s *stubReporter) ReportBulk(context.Context) error {
+	return nil
 }
 
 func (s *stubReporter) Name() string {
@@ -35,7 +42,7 @@ func (s *stubReporter) Publish(_ context.Context, mtr *metric.Metric) {
 	})
 }
 
-func NewStubReporter(t *testing.T, consumer func(*metric.Metric)) ReporterService {
+func NewStubReporter(t require.TestingT, consumer func(*metric.Metric)) ReporterService {
 	return &stubReporter{
 		t:        t,
 		consumer: consumer,

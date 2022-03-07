@@ -6,15 +6,11 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/zhupanovdm/go-runtime-monitor/config"
 	"github.com/zhupanovdm/go-runtime-monitor/model/metric"
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/logging"
 )
 
-const memStatsName = "MemStats"
-
-// Collects std MemStats runtime metrics
-func memStats() Collector {
+func MemStats() Collector {
 	var counter int64
 
 	rand.Seed(time.Now().UnixNano())
@@ -63,8 +59,4 @@ func memStats() Collector {
 
 		return nil
 	}
-}
-
-func NewMemStatsCollector(cfg *config.Config, reporter ReporterService) CollectorService {
-	return NewMetricsCollector(cfg, reporter, memStats(), memStatsName)
 }

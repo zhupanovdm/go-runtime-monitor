@@ -14,6 +14,7 @@ const (
 	DefaultRestore        = true
 	DefaultStoreInterval  = 300 * time.Second
 	DefaultStoreFile      = "/tmp/devops-metrics-db.json"
+	DefaultPProfAddress   = ":9000"
 )
 
 type CLIExport func(*Config, *flag.FlagSet)
@@ -28,10 +29,11 @@ type Config struct {
 	Restore        bool          `env:"RESTORE"`
 	Key            string        `env:"KEY"`
 	Database       string        `env:"DATABASE_DSN"`
+	PProfAddress   string
 }
 
 func Load(cli CLIExport) (*Config, error) {
-	cfg := &Config{ReportBuffer: 1024}
+	cfg := &Config{ReportBuffer: 1024, PProfAddress: DefaultPProfAddress}
 
 	if cli != nil {
 		cli(cfg, flag.CommandLine)

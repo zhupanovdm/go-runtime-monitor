@@ -7,15 +7,11 @@ import (
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/mem"
 
-	"github.com/zhupanovdm/go-runtime-monitor/config"
 	"github.com/zhupanovdm/go-runtime-monitor/model/metric"
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/logging"
 )
 
-const psName = "ps"
-
-// Collects memory and cpu utilisation
-func ps() Collector {
+func PS() Collector {
 	return func(ctx context.Context, reporter ReporterService) error {
 		_, logger := logging.GetOrCreateLogger(ctx)
 
@@ -39,8 +35,4 @@ func ps() Collector {
 		}
 		return nil
 	}
-}
-
-func NewPsCollector(cfg *config.Config, reporter ReporterService) CollectorService {
-	return NewMetricsCollector(cfg, reporter, ps(), psName)
 }
