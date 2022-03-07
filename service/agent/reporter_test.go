@@ -14,28 +14,22 @@ import (
 func Benchmark_metricsReporter(b *testing.B) {
 	count := 1024
 
-	b.Run("publish", func(b *testing.B) {
-		b.StopTimer()
-		rep := NewMetricsReporter(&config.Config{
-			ReportBuffer: count + 1,
-		}, stub.New())
-		ctx := context.TODO()
-		b.StartTimer()
-
+	b.Run("Reporter publishing", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			rep.Publish(ctx, metric.NewGaugeMetric("foo", metric.Gauge(0)))
+			b.StopTimer()
+			rep := NewMetricsReporter(&config.Config{ReportBuffer: count + 1}, stub.New())
+			ctx := context.TODO()
+			b.StartTimer()
+
+			publish(ctx, rep, count)
 		}
 	})
 
-	b.Run("report bulk", func(b *testing.B) {
+	b.Run("Report bulk", func(b *testing.B) {
 		b.StopTimer()
-		rep := NewMetricsReporter(&config.Config{
-			ReportBuffer: count + 1,
-		}, stub.New())
+		rep := NewMetricsReporter(&config.Config{ReportBuffer: count + 1}, stub.New())
 		ctx := context.TODO()
-		for j := 0; j < count; j++ {
-			rep.Publish(ctx, metric.NewGaugeMetric("foo", metric.Gauge(0)))
-		}
+		publish(ctx, rep, count)
 		b.StartTimer()
 
 		for i := 0; i < b.N; i++ {
@@ -43,4 +37,10 @@ func Benchmark_metricsReporter(b *testing.B) {
 		}
 	})
 
+}
+
+func publish(ctx context.Context, rep ReporterService, count int) {
+	for j := 0; j < count; j++ {
+		rep.Publish(ctx, metric.NewGaugeMetric("foo", metric.Gauge(0)))
+	}
 }

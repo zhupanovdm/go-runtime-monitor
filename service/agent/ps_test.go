@@ -7,11 +7,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/zhupanovdm/go-runtime-monitor/model/metric"
 )
 
-func Test_ps(t *testing.T) {
+func TestPS(t *testing.T) {
 	actual := make(metric.List, 0)
 	stub := NewStubReporter(t, func(m *metric.Metric) { actual = append(actual, m) })
 	expected := metric.List{
@@ -26,6 +27,20 @@ func Test_ps(t *testing.T) {
 		err := PS()(context.TODO(), stub)
 		if assert.NoError(t, err) {
 			assert.ElementsMatch(t, actual, expected)
+		}
+	})
+}
+
+func BenchmarkPS(b *testing.B) {
+	b.Run("PS polling", func(b *testing.B) {
+		b.StopTimer()
+		stub := NewStubReporter(b, func(*metric.Metric) {})
+		collector := PS()
+		ctx := context.TODO()
+		b.StartTimer()
+
+		for i := 0; i < b.N; i++ {
+			require.NoError(b, collector(ctx, stub))
 		}
 	})
 }

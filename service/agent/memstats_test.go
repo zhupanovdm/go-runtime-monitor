@@ -10,7 +10,7 @@ import (
 	"github.com/zhupanovdm/go-runtime-monitor/model/metric"
 )
 
-func Test_memStats(t *testing.T) {
+func TestMemStats(t *testing.T) {
 	actual := make(metric.List, 0)
 	stub := NewStubReporter(t, func(m *metric.Metric) { actual = append(actual, m) })
 	expected := metric.List{
@@ -53,8 +53,8 @@ func Test_memStats(t *testing.T) {
 	})
 }
 
-func Benchmark_memStats(b *testing.B) {
-	b.Run("basic use", func(b *testing.B) {
+func BenchmarkMemStats(b *testing.B) {
+	b.Run("Mem Stats polling", func(b *testing.B) {
 		b.StopTimer()
 		stub := NewStubReporter(b, func(*metric.Metric) {})
 		collector := MemStats()
