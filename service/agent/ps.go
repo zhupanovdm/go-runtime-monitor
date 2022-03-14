@@ -7,12 +7,11 @@ import (
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/mem"
 
-	"github.com/zhupanovdm/go-runtime-monitor/model/metric"
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/logging"
 )
 
 func PS() Collector {
-	return func(ctx context.Context, reporter ReporterService) error {
+	return func(ctx context.Context, froze *Froze) error {
 		_, logger := logging.GetOrCreateLogger(ctx)
 
 		v, err := mem.VirtualMemoryWithContext(ctx)
@@ -21,8 +20,8 @@ func PS() Collector {
 			return err
 		}
 
-		reporter.Publish(ctx, metric.NewGaugeMetric("TotalMemory", metric.Gauge(v.Total)))
-		reporter.Publish(ctx, metric.NewGaugeMetric("FreeMemory", metric.Gauge(v.Free)))
+		froze.UpdateGauge("TotalMemory", float64(v.Total))
+		froze.UpdateGauge("FreeMemory", float64(v.Free))
 
 		usage, err := cpu.PercentWithContext(ctx, 0, true)
 		if err != nil {
@@ -30,8 +29,7 @@ func PS() Collector {
 			return err
 		}
 		for i := 0; i < len(usage); i++ {
-			name := fmt.Sprintf("CPUutilization%d", i+1)
-			reporter.Publish(ctx, metric.NewGaugeMetric(name, metric.Gauge(usage[i])))
+			froze.UpdateGauge(fmt.Sprintf("CPUutilization%d", i+1), usage[i])
 		}
 		return nil
 	}

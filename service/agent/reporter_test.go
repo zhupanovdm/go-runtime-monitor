@@ -2,44 +2,45 @@ package agent
 
 import (
 	"context"
-	"github.com/rs/zerolog"
-	"github.com/stretchr/testify/require"
-	"github.com/zhupanovdm/go-runtime-monitor/config"
-	"github.com/zhupanovdm/go-runtime-monitor/model/metric"
-	"github.com/zhupanovdm/go-runtime-monitor/providers/monitor/stub"
+	"fmt"
 	"testing"
+
+	"github.com/rs/zerolog"
+
+	"github.com/zhupanovdm/go-runtime-monitor/config"
+	"github.com/zhupanovdm/go-runtime-monitor/providers/monitor/stub"
 )
 
-func Benchmark_metricsReporter(b *testing.B) {
+func BenchmarkMetricsReporter(b *testing.B) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	count := 1024
 	ctx := context.TODO()
 
 	b.Run("Reporter publishing", func(b *testing.B) {
+		froze := NewFroze()
+		b.ResetTimer()
+
 		for i := 0; i < b.N; i++ {
-			b.StopTimer()
-			rep := NewMetricsReporter(&config.Config{ReportBuffer: count + 1}, stub.New())
-			b.StartTimer()
-			publish(ctx, rep, count)
+			publish(froze, count)
 		}
 	})
 
 	b.Run("Report bulk", func(b *testing.B) {
-		b.StopTimer()
-		rep := NewMetricsReporter(&config.Config{ReportBuffer: count + 1}, stub.New())
-		publish(ctx, rep, count)
-		b.StartTimer()
+		froze := NewFroze()
+		publish(froze, count)
+		rep := NewMetricsReporter(&config.Config{}, froze, stub.New())
+		b.ResetTimer()
 
 		for i := 0; i < b.N; i++ {
-			require.NoError(b, rep.ReportBulk(ctx))
+			rep.Report(ctx)
 		}
 	})
 
 }
 
-func publish(ctx context.Context, rep ReporterService, count int) {
+func publish(froze *Froze, count int) {
 	for j := 0; j < count; j++ {
-		rep.Publish(ctx, metric.NewGaugeMetric("foo", metric.Gauge(0)))
+		froze.UpdateGauge(fmt.Sprintf("foo%d", j+1), float64(j))
 	}
 }

@@ -23,7 +23,6 @@ type Config struct {
 	Address        string        `env:"ADDRESS"`
 	PollInterval   time.Duration `env:"POLL_INTERVAL"`
 	ReportInterval time.Duration `env:"REPORT_INTERVAL"`
-	ReportBuffer   int
 	StoreInterval  time.Duration `env:"STORE_INTERVAL"`
 	StoreFile      string        `env:"STORE_FILE"`
 	Restore        bool          `env:"RESTORE"`
@@ -33,7 +32,7 @@ type Config struct {
 }
 
 func Load(cli CLIExport) (*Config, error) {
-	cfg := &Config{ReportBuffer: 1024, PProfAddress: DefaultPProfAddress}
+	cfg := &Config{PProfAddress: DefaultPProfAddress}
 
 	if cli != nil {
 		cli(cfg, flag.CommandLine)

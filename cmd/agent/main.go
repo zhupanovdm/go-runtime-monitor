@@ -46,8 +46,9 @@ func main() {
 		return
 	}
 
-	reporterSvc := agent.NewMetricsReporter(cfg, mon)
-	collector := agent.NewMetricsCollector(cfg, reporterSvc, agent.MemStats(), agent.PS())
+	froze := agent.NewFroze()
+	reporterSvc := agent.NewMetricsReporter(cfg, froze, mon)
+	collector := agent.NewMetricsCollector(cfg, froze, agent.MemStats(), agent.PS())
 
 	go reporterSvc.BackgroundTask().With(task.CompletionWait(&wg))(ctx)
 	go collector.BackgroundTask().With(task.CompletionWait(&wg))(ctx)

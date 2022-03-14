@@ -13,12 +13,12 @@ var _ CollectorService = (*metricsCollector)(nil)
 
 type (
 	metricsCollector struct {
-		reporter   ReporterService
+		froze      *Froze
 		collectors []Collector
 		interval   time.Duration
 	}
 
-	Collector func(ctx context.Context, reporter ReporterService) error
+	Collector func(ctx context.Context, froze *Froze) error
 )
 
 func (c *metricsCollector) Poll(ctx context.Context) {
@@ -26,8 +26,11 @@ func (c *metricsCollector) Poll(ctx context.Context) {
 	ctx, logger := logging.GetOrCreateLogger(ctx, logging.WithService(c), logging.WithCID(ctx))
 	logger.Info().Msg("polling metrics")
 
+	c.froze.Lock()
+	defer c.froze.Unlock()
+
 	for i, collector := range c.collectors {
-		if err := collector(ctx, c.reporter); err != nil {
+		if err := collector(ctx, c.froze); err != nil {
 			logger.Err(err).Msgf("collector (%d) failed", i)
 		}
 	}
@@ -42,10 +45,10 @@ func (c *metricsCollector) Name() string {
 	return "Agent metrics collector"
 }
 
-func NewMetricsCollector(cfg *config.Config, reporter ReporterService, collectors ...Collector) CollectorService {
+func NewMetricsCollector(cfg *config.Config, froze *Froze, collectors ...Collector) CollectorService {
 	return &metricsCollector{
 		collectors: collectors,
-		reporter:   reporter,
+		froze:      froze,
 		interval:   cfg.PollInterval,
 	}
 }

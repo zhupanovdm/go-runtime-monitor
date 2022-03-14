@@ -6,57 +6,55 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/zhupanovdm/go-runtime-monitor/model/metric"
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/logging"
 )
 
 func MemStats() Collector {
 	var counter int64
+	var stats runtime.MemStats
 
 	rand.Seed(time.Now().UnixNano())
 
-	return func(ctx context.Context, reporter ReporterService) error {
+	return func(ctx context.Context, froze *Froze) error {
 		_, logger := logging.GetOrCreateLogger(ctx)
 
 		counter++
 		ctx = logging.SetLogger(ctx, logger.With().Int64(logging.PollCountKey, counter).Logger())
 
-		stats := &runtime.MemStats{}
-		runtime.ReadMemStats(stats)
+		runtime.ReadMemStats(&stats)
 
-		reporter.Publish(ctx, metric.NewGaugeMetric("Alloc", metric.Gauge(stats.Alloc)))
-		reporter.Publish(ctx, metric.NewGaugeMetric("BuckHashSys", metric.Gauge(stats.BuckHashSys)))
-		reporter.Publish(ctx, metric.NewGaugeMetric("GCCPUFraction", metric.Gauge(stats.GCCPUFraction)))
-		reporter.Publish(ctx, metric.NewGaugeMetric("GCSys", metric.Gauge(stats.GCSys)))
-		reporter.Publish(ctx, metric.NewGaugeMetric("HeapAlloc", metric.Gauge(stats.HeapAlloc)))
-		reporter.Publish(ctx, metric.NewGaugeMetric("HeapIdle", metric.Gauge(stats.HeapIdle)))
-		reporter.Publish(ctx, metric.NewGaugeMetric("HeapInuse", metric.Gauge(stats.HeapInuse)))
-		reporter.Publish(ctx, metric.NewGaugeMetric("HeapObjects", metric.Gauge(stats.HeapObjects)))
-		reporter.Publish(ctx, metric.NewGaugeMetric("HeapReleased", metric.Gauge(stats.HeapReleased)))
-		reporter.Publish(ctx, metric.NewGaugeMetric("HeapSys", metric.Gauge(stats.HeapSys)))
-		reporter.Publish(ctx, metric.NewGaugeMetric("LastGC", metric.Gauge(stats.LastGC)))
-		reporter.Publish(ctx, metric.NewGaugeMetric("Lookups", metric.Gauge(stats.Lookups)))
-		reporter.Publish(ctx, metric.NewGaugeMetric("MCacheInuse", metric.Gauge(stats.MCacheInuse)))
-		reporter.Publish(ctx, metric.NewGaugeMetric("MCacheSys", metric.Gauge(stats.MCacheSys)))
-		reporter.Publish(ctx, metric.NewGaugeMetric("MSpanInuse", metric.Gauge(stats.MSpanInuse)))
-		reporter.Publish(ctx, metric.NewGaugeMetric("MSpanSys", metric.Gauge(stats.MSpanSys)))
-		reporter.Publish(ctx, metric.NewGaugeMetric("Mallocs", metric.Gauge(stats.Mallocs)))
-		reporter.Publish(ctx, metric.NewGaugeMetric("NextGC", metric.Gauge(stats.NextGC)))
-		reporter.Publish(ctx, metric.NewGaugeMetric("NumForcedGC", metric.Gauge(stats.NumForcedGC)))
-		reporter.Publish(ctx, metric.NewGaugeMetric("NumGC", metric.Gauge(stats.NumGC)))
-		reporter.Publish(ctx, metric.NewGaugeMetric("OtherSys", metric.Gauge(stats.OtherSys)))
-		reporter.Publish(ctx, metric.NewGaugeMetric("PauseTotalNs", metric.Gauge(stats.PauseTotalNs)))
-		reporter.Publish(ctx, metric.NewGaugeMetric("StackInuse", metric.Gauge(stats.StackInuse)))
-		reporter.Publish(ctx, metric.NewGaugeMetric("StackSys", metric.Gauge(stats.StackSys)))
-		reporter.Publish(ctx, metric.NewGaugeMetric("Sys", metric.Gauge(stats.Sys)))
+		froze.UpdateGauge("Alloc", float64(stats.Alloc))
+		froze.UpdateGauge("BuckHashSys", float64(stats.BuckHashSys))
+		froze.UpdateGauge("GCCPUFraction", stats.GCCPUFraction)
+		froze.UpdateGauge("GCSys", float64(stats.GCSys))
+		froze.UpdateGauge("HeapAlloc", float64(stats.HeapAlloc))
+		froze.UpdateGauge("HeapIdle", float64(stats.HeapIdle))
+		froze.UpdateGauge("HeapInuse", float64(stats.HeapInuse))
+		froze.UpdateGauge("HeapObjects", float64(stats.HeapObjects))
+		froze.UpdateGauge("HeapSys", float64(stats.HeapSys))
+		froze.UpdateGauge("HeapReleased", float64(stats.HeapReleased))
+		froze.UpdateGauge("LastGC", float64(stats.LastGC))
+		froze.UpdateGauge("Lookups", float64(stats.Lookups))
+		froze.UpdateGauge("MCacheSys", float64(stats.MCacheSys))
+		froze.UpdateGauge("MCacheInuse", float64(stats.MCacheInuse))
+		froze.UpdateGauge("MSpanInuse", float64(stats.MSpanInuse))
+		froze.UpdateGauge("MSpanSys", float64(stats.MSpanSys))
+		froze.UpdateGauge("Mallocs", float64(stats.Mallocs))
+		froze.UpdateGauge("NextGC", float64(stats.NextGC))
+		froze.UpdateGauge("NumForcedGC", float64(stats.NumForcedGC))
+		froze.UpdateGauge("NumGC", float64(stats.NumGC))
+		froze.UpdateGauge("OtherSys", float64(stats.OtherSys))
+		froze.UpdateGauge("PauseTotalNs", float64(stats.PauseTotalNs))
+		froze.UpdateGauge("StackInuse", float64(stats.StackInuse))
+		froze.UpdateGauge("StackSys", float64(stats.StackSys))
+		froze.UpdateGauge("Sys", float64(stats.Sys))
 
-		reporter.Publish(ctx, metric.NewGaugeMetric("RandomValue", metric.Gauge(rand.Float64())))
+		froze.UpdateGauge("RandomValue", rand.Float64())
 
-		reporter.Publish(ctx, metric.NewGaugeMetric("Frees", metric.Gauge(stats.Frees)))
-		reporter.Publish(ctx, metric.NewGaugeMetric("TotalAlloc", metric.Gauge(stats.TotalAlloc)))
+		froze.UpdateGauge("Frees", float64(stats.Frees))
+		froze.UpdateGauge("TotalAlloc", float64(stats.TotalAlloc))
 
-		reporter.Publish(ctx, metric.NewCounterMetric("PollCount", metric.Counter(counter)))
-
+		froze.UpdateCounter("PollCount", counter)
 		return nil
 	}
 }
