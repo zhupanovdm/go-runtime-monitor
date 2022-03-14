@@ -1,8 +1,9 @@
 package agent
 
 import (
-	"github.com/zhupanovdm/go-runtime-monitor/model/metric"
 	"sync"
+
+	"github.com/zhupanovdm/go-runtime-monitor/model/metric"
 )
 
 type Froze struct {
