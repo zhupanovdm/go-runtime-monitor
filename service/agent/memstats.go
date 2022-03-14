@@ -5,8 +5,6 @@ import (
 	"math/rand"
 	"runtime"
 	"time"
-
-	"github.com/zhupanovdm/go-runtime-monitor/pkg/logging"
 )
 
 func MemStats() Collector {
@@ -16,11 +14,7 @@ func MemStats() Collector {
 	rand.Seed(time.Now().UnixNano())
 
 	return func(ctx context.Context, froze *Froze) error {
-		_, logger := logging.GetOrCreateLogger(ctx)
-
 		counter++
-		ctx = logging.SetLogger(ctx, logger.With().Int64(logging.PollCountKey, counter).Logger())
-
 		runtime.ReadMemStats(&stats)
 
 		froze.UpdateGauge("Alloc", float64(stats.Alloc))
