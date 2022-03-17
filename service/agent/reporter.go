@@ -46,6 +46,8 @@ func (r *metricsReporter) Name() string {
 	return "Agent metrics reporter"
 }
 
+// NewMetricsReporter creates new metrics reporting service. Each time the service is called to report it will read entirely
+// metrics from Froze and send it to monitor.Provider.
 func NewMetricsReporter(cfg *config.Config, froze *Froze, provider monitor.Provider) ReporterService {
 	return &metricsReporter{
 		froze:    froze,

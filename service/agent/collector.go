@@ -11,15 +11,11 @@ import (
 
 var _ CollectorService = (*metricsCollector)(nil)
 
-type (
-	metricsCollector struct {
-		froze      *Froze
-		collectors []Collector
-		interval   time.Duration
-	}
-
-	Collector func(ctx context.Context, froze *Froze) error
-)
+type metricsCollector struct {
+	froze      *Froze
+	collectors []Collector
+	interval   time.Duration
+}
 
 func (c *metricsCollector) Poll(ctx context.Context) {
 	ctx, _ = logging.SetIfAbsentCID(ctx, logging.NewCID())
@@ -45,6 +41,8 @@ func (c *metricsCollector) Name() string {
 	return "Agent metrics collector"
 }
 
+// NewMetricsCollector creates new metrics collecting service. All metrics collected by specified collectors will be
+// published on Froze object.
 func NewMetricsCollector(cfg *config.Config, froze *Froze, collectors ...Collector) CollectorService {
 	return &metricsCollector{
 		collectors: collectors,
