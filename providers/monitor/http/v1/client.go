@@ -51,6 +51,7 @@ func (c httpClient) Value(ctx context.Context, id string, typ metric.Type) (metr
 	return typ.Parse(string(resp.Body()))
 }
 
+// Deprecated: New version v.2 of provider should be used instead
 func NewClient(cfg *monitor.Config) (monitor.Provider, error) {
 	c, err := http.NewClient(cfg, clientName)
 	if err != nil {

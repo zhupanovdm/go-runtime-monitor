@@ -1,3 +1,4 @@
+// Package monitor is service responsible for metrics operation on monitor server.
 package monitor
 
 import (
@@ -153,6 +154,7 @@ func (m *monitor) Name() string {
 	return "Monitor service"
 }
 
+// NewMonitor creates Monitor application service.
 func NewMonitor(cfg *config.Config, dumpStorage storage.Storage, metricStorage storage.Storage) Monitor {
 	return &monitor{
 		interval:      cfg.StoreInterval,

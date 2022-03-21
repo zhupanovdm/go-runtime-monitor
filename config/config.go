@@ -1,3 +1,4 @@
+// Package config is used to describe application runtime operation parameters.
 package config
 
 import (
@@ -14,24 +15,49 @@ const (
 	DefaultRestore        = true
 	DefaultStoreInterval  = 300 * time.Second
 	DefaultStoreFile      = "/tmp/devops-metrics-db.json"
+	DefaultPProfAddress   = ":9000"
 )
 
-type CLIExport func(*Config, *flag.FlagSet)
+type (
+	// Config describes application parameters.
+	Config struct {
+		// Address is Monitor server address.
+		Address string `env:"ADDRESS"`
 
-type Config struct {
-	Address        string        `env:"ADDRESS"`
-	PollInterval   time.Duration `env:"POLL_INTERVAL"`
-	ReportInterval time.Duration `env:"REPORT_INTERVAL"`
-	ReportBuffer   int
-	StoreInterval  time.Duration `env:"STORE_INTERVAL"`
-	StoreFile      string        `env:"STORE_FILE"`
-	Restore        bool          `env:"RESTORE"`
-	Key            string        `env:"KEY"`
-	Database       string        `env:"DATABASE_DSN"`
-}
+		// PollInterval specifies runtime metrics polling period.
+		PollInterval time.Duration `env:"POLL_INTERVAL"`
 
+		// ReportInterval specifies collected metrics send period.
+		ReportInterval time.Duration `env:"REPORT_INTERVAL"`
+
+		// StoreInterval specifies dumping period. Dumps on every update if not set.
+		StoreInterval time.Duration `env:"STORE_INTERVAL"`
+
+		// StoreFile sets file to dump gathered metrics.
+		StoreFile string `env:"STORE_FILE"`
+
+		// Restore enables metrics restore from dump on monitor server startup. Disables dumping if not set.
+		Restore bool `env:"RESTORE"`
+
+		// Key is a secret key for signing metrics that will be transmitted to monitor server.
+		Key string `env:"KEY"`
+
+		// Database describes database connection which will be used to persist gathered metrics.
+		Database string `env:"DATABASE_DSN"`
+
+		// PProfAddress is address for pprof utility
+		PProfAddress string
+	}
+
+	// CLIExport is used to expose CLI options to Config
+	CLIExport func(*Config, *flag.FlagSet)
+)
+
+// Load returns initialized config. Config parameters wil be searched in such priority:
+// 1. environment
+// 2. CLI (if CLIExport is specified)
 func Load(cli CLIExport) (*Config, error) {
-	cfg := &Config{ReportBuffer: 1024}
+	cfg := &Config{PProfAddress: DefaultPProfAddress}
 
 	if cli != nil {
 		cli(cfg, flag.CommandLine)

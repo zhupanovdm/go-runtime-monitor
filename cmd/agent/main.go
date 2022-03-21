@@ -3,7 +3,10 @@ package main
 import (
 	"context"
 	"flag"
+	"net/http"
 	"sync"
+
+	_ "net/http/pprof"
 
 	"github.com/zhupanovdm/go-runtime-monitor/config"
 	"github.com/zhupanovdm/go-runtime-monitor/pkg/app"
@@ -22,7 +25,12 @@ func cli(cfg *config.Config, flag *flag.FlagSet) {
 }
 
 func main() {
+	var wg sync.WaitGroup
+	defer wg.Wait()
+
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName("Agent app"))
 	logger.Info().Msg("starting runtime metrics monitor agent")
 
@@ -38,16 +46,29 @@ func main() {
 		return
 	}
 
-	reporterSvc := agent.NewMetricsReporter(cfg, mon)
-	memStats := agent.NewMemStatsCollector(cfg, reporterSvc)
-	ps := agent.NewPsCollector(cfg, reporterSvc)
+	froze := agent.NewFroze()
+	reporterSvc := agent.NewMetricsReporter(cfg, froze, mon)
+	collector := agent.NewMetricsCollector(cfg, froze, agent.MemStats(), agent.PS())
 
-	var wg sync.WaitGroup
 	go reporterSvc.BackgroundTask().With(task.CompletionWait(&wg))(ctx)
-	go memStats.BackgroundTask().With(task.CompletionWait(&wg))(ctx)
-	go ps.BackgroundTask().With(task.CompletionWait(&wg))(ctx)
+	go collector.BackgroundTask().With(task.CompletionWait(&wg))(ctx)
+
+	srv := &http.Server{Addr: cfg.PProfAddress}
+	defer func() {
+		logger.Info().Msg("closing pprof server")
+		if err := srv.Close(); err != nil {
+			logger.Err(err).Msg("failed to stop pprof server")
+		}
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		logger.Info().Msg("starting pprof server")
+		if err := srv.ListenAndServe(); err != nil {
+			logger.Err(err).Msg("stopped to serve pprof")
+		}
+	}()
 
 	logger.Info().Msgf("%v signal received", <-app.TerminationSignal())
-	cancel()
-	wg.Wait()
 }

@@ -20,6 +20,19 @@ type MetricsHandler struct {
 	monitor monitor.Monitor
 }
 
+// Update godoc
+// @Tags v1
+// @Summary Updates single metric value
+// @Description report monitor server of changed metric
+// @ID v1metricsUpdate
+// @Param type path string true "metric type" Enums(gauge, counter)
+// @Param id path string true "metric id"
+// @Param value path number true "metric value"
+// @Success 200 {string} string "OK"
+// @Failure 400 {string} string "Bad request"
+// @Failure 500 {string} string "Internal server error"
+// @Failure 501 {string} string "Not implemented"
+// @Router /update/{type}/{id}/{value} [post]
 func (h *MetricsHandler) Update(resp http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 
@@ -56,6 +69,19 @@ func (h *MetricsHandler) Update(resp http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// Value godoc
+// @Tags v1
+// @Summary Queries single metric value
+// @Description gets actual metric value
+// @ID v1metricsValue
+// @Param type path string true "metric type" Enums(gauge, counter)
+// @Param id path string true "metric id"
+// @Produce plain
+// @Success 200 {number} number "OK"
+// @Failure 400 {string} string "Bad request"
+// @Failure 500 {string} string "Internal server error"
+// @Failure 501 {string} string "Not implemented"
+// @Router /value/{type}/{id} [get]
 func (h *MetricsHandler) Value(resp http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 
@@ -95,6 +121,15 @@ func (h *MetricsHandler) Value(resp http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// GetAll godoc
+// @Tags v1
+// @Summary Queries all metrics values
+// @Description gets all metrics values
+// @ID v1metricsGetAll
+// @Produce html
+// @Success 200 {string} string "OK"
+// @Failure 500 {string} string "Internal server error"
+// @Router / [get]
 func (h *MetricsHandler) GetAll(resp http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 

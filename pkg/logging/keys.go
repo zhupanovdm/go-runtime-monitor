@@ -6,17 +6,11 @@ const (
 	// CorrelationIDKey is used to track unique request.
 	CorrelationIDKey = "cid"
 
-	// CorrelationIDChangedKey is used to track request multiplexing.
-	CorrelationIDChangedKey = "cid_changed"
-
 	// CorrelationIDHeader is used to transport Correlation ID context value via the HTTP header.
 	CorrelationIDHeader = "X-CorrelationID"
 
 	// ServiceKey is used to track concrete service side effects.
 	ServiceKey = "svc"
-
-	// PollCountKey is used to track metrics polling attempt of agent.CollectorService.
-	PollCountKey = "poll"
 
 	// MetricIDKey is used to track metrics by name.
 	MetricIDKey = "metric_name"
@@ -28,14 +22,19 @@ const (
 	MetricValueKey = "metric_value"
 )
 
-type LogCtxProvider interface {
-	LoggerCtx(ctx zerolog.Context) zerolog.Context
-}
-
 var _ LogCtxProvider = (LoggerCtxUpdate)(nil)
 
-type LoggerCtxUpdate func(ctx zerolog.Context) zerolog.Context
+type (
+	// LogCtxProvider should be implemented by types that is supposed to display itself on logging context.
+	LogCtxProvider interface {
+		LoggerCtx(ctx zerolog.Context) zerolog.Context
+	}
 
+	// LoggerCtxUpdate function should update specified context and return updated logger context.
+	LoggerCtxUpdate func(ctx zerolog.Context) zerolog.Context
+)
+
+// LoggerCtx applies LoggerCtxUpdate to specified logger context if not nil.
 func (upd LoggerCtxUpdate) LoggerCtx(ctx zerolog.Context) zerolog.Context {
 	if upd != nil {
 		return upd(ctx)
@@ -43,6 +42,7 @@ func (upd LoggerCtxUpdate) LoggerCtx(ctx zerolog.Context) zerolog.Context {
 	return ctx
 }
 
+// LogCtxUpdateWith updates specified logger context sequentially applying provided contexts.
 func LogCtxUpdateWith(ctx zerolog.Context, providers ...LogCtxProvider) zerolog.Context {
 	for _, p := range providers {
 		ctx = p.LoggerCtx(ctx)
@@ -50,12 +50,14 @@ func LogCtxUpdateWith(ctx zerolog.Context, providers ...LogCtxProvider) zerolog.
 	return ctx
 }
 
+// LogCtxFrom is helper function combines several context providers to a single LoggerCtxUpdate.
 func LogCtxFrom(providers ...LogCtxProvider) LoggerCtxUpdate {
 	return func(ctx zerolog.Context) zerolog.Context {
 		return LogCtxUpdateWith(ctx, providers...)
 	}
 }
 
+// LogCtxKeyStr constructs new LoggerCtxUpdate that will update specified context with provided string key\value.
 func LogCtxKeyStr(key string, value string) LoggerCtxUpdate {
 	return func(ctx zerolog.Context) zerolog.Context {
 		return ctx.Str(key, value)

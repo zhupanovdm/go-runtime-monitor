@@ -17,11 +17,13 @@ import (
 
 const serverName = "Monitor HTTP Server"
 
+// Server is monitor application's HTTP server.
 type Server struct {
 	*http.Server
 	wg sync.WaitGroup
 }
 
+// Start will start serving clients requests.
 func (srv *Server) Start(ctx context.Context) {
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(serverName))
 	logger.Info().Msgf("running server on %v", srv.Addr)
@@ -35,6 +37,7 @@ func (srv *Server) Start(ctx context.Context) {
 	}()
 }
 
+// Stop will close the server.
 func (srv *Server) Stop(ctx context.Context) {
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName(serverName))
 	if err := srv.Close(); err != nil {
@@ -43,6 +46,7 @@ func (srv *Server) Stop(ctx context.Context) {
 	srv.wg.Wait()
 }
 
+// NewServer creates HTTP server object.
 func NewServer(cfg *config.Config, handler http.Handler) *Server {
 	srv := &http.Server{
 		Addr: cfg.Address,

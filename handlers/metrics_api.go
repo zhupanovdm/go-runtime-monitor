@@ -22,6 +22,17 @@ type MetricsAPIHandler struct {
 	key     string
 }
 
+// Update godoc
+// @Tags v2
+// @Summary Updates single metric value
+// @Description report monitor server of changed metric
+// @ID v2metricsUpdate
+// @Accept json
+// @Param metric_data body model.Metrics true "Metric to update"
+// @Success 200 {string} string "OK"
+// @Failure 400 {string} string "Bad request"
+// @Failure 500 {string} string "Internal server error"
+// @Router /update [post]
 func (h *MetricsAPIHandler) Update(resp http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 
@@ -52,6 +63,17 @@ func (h *MetricsAPIHandler) Update(resp http.ResponseWriter, req *http.Request) 
 	}
 }
 
+// UpdateBulk godoc
+// @Tags v2
+// @Summary Updates multiple metrics values
+// @Description Report monitor server of several changed metrics at once
+// @ID v2metricsUpdateBulk
+// @Accept json
+// @Param metrics_list body []model.Metrics true "Metric to update"
+// @Success 200 {string} string "OK"
+// @Failure 400 {string} string "Bad request"
+// @Failure 500 {string} string "Internal server error"
+// @Router /updates [post]
 func (h *MetricsAPIHandler) UpdateBulk(resp http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 
@@ -81,6 +103,18 @@ func (h *MetricsAPIHandler) UpdateBulk(resp http.ResponseWriter, req *http.Reque
 	}
 }
 
+// Value godoc
+// @Tags v2
+// @Summary Queries requested metric value
+// @Description Returns specified metric actual value
+// @ID v2metricsValue
+// @Accept json
+// @Produce json
+// @Success 200 {number} number "OK"
+// @Failure 400 {string} string "Bad request"
+// @Failure 404 {string} string "Not found"
+// @Failure 500 {string} string "Internal server error"
+// @Router /value [get]
 func (h *MetricsAPIHandler) Value(resp http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 
@@ -134,6 +168,14 @@ func (h *MetricsAPIHandler) Value(resp http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// Ping godoc
+// @Tags Diag
+// @Summary Service diagnostic method
+// @Description Returns OK if service is up
+// @ID diagPing
+// @Success 200 {string} string "OK"
+// @Failure 500 {string} string "Internal server error"
+// @Router /ping [get]
 func (h *MetricsAPIHandler) Ping(resp http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 
