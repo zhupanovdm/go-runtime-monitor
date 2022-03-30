@@ -17,6 +17,12 @@ import (
 	"github.com/zhupanovdm/go-runtime-monitor/service/agent"
 )
 
+var (
+	buildVersion app.BuildInfoString
+	buildDate    app.BuildInfoString
+	buildCommit  app.BuildInfoString
+)
+
 func cli(cfg *config.Config, flag *flag.FlagSet) {
 	flag.StringVar(&cfg.Address, "a", config.DefaultAddress, "Monitor server address")
 	flag.DurationVar(&cfg.ReportInterval, "r", config.DefaultReportInterval, "Agent reporting interval")
@@ -32,6 +38,11 @@ func main() {
 	defer cancel()
 
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName("Agent app"))
+
+	logger.Info().Msgf("Build version: %v", buildVersion)
+	logger.Info().Msgf("Build date: %v", buildDate)
+	logger.Info().Msgf("Build commit: %v", buildCommit)
+
 	logger.Info().Msg("starting runtime metrics monitor agent")
 
 	cfg, err := config.Load(cli)
