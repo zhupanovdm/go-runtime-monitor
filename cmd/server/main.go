@@ -17,6 +17,12 @@ import (
 	"github.com/zhupanovdm/go-runtime-monitor/storage/trivial"
 )
 
+var (
+	buildVersion app.BuildInfoString
+	buildDate    app.BuildInfoString
+	buildCommit  app.BuildInfoString
+)
+
 func cli(cfg *config.Config, flag *flag.FlagSet) {
 	flag.StringVar(&cfg.Address, "a", config.DefaultAddress, "Monitor server address")
 	flag.BoolVar(&cfg.Restore, "r", config.DefaultRestore, "Monitor will restore metrics at startup")
@@ -29,6 +35,11 @@ func cli(cfg *config.Config, flag *flag.FlagSet) {
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	_, logger := logging.GetOrCreateLogger(ctx, logging.WithServiceName("Monitor app"))
+
+	logger.Info().Msgf("Build version: %v", buildVersion)
+	logger.Info().Msgf("Build date: %v", buildDate)
+	logger.Info().Msgf("Build commit: %v", buildCommit)
+
 	logger.Info().Msg("starting runtime metrics monitor server")
 
 	cfg, err := config.Load(cli)
